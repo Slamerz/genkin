@@ -1,0 +1,200 @@
+{
+  "files": [
+    {
+      "status": "Pass",
+      "maxSize": 1024,
+      "compression": "gzip",
+      "pattern": "core.cjs",
+      "path": "core.cjs",
+      "size": 401,
+      "diff": {
+        "change": "Add",
+        "bytes": 401,
+        "percent": null
+      }
+    },
+    {
+      "status": "Pass",
+      "maxSize": 1024,
+      "compression": "gzip",
+      "pattern": "core.js",
+      "path": "core.js",
+      "size": 250,
+      "diff": {
+        "change": "Add",
+        "bytes": 250,
+        "percent": null
+      }
+    },
+    {
+      "status": "Pass",
+      "maxSize": 1024,
+      "compression": "gzip",
+      "pattern": "currencies.cjs",
+      "path": "currencies.cjs",
+      "size": 317,
+      "diff": {
+        "change": "Add",
+        "bytes": 317,
+        "percent": null
+      }
+    },
+    {
+      "status": "Pass",
+      "maxSize": 1024,
+      "compression": "gzip",
+      "pattern": "currencies.js",
+      "path": "currencies.js",
+      "size": 190,
+      "diff": {
+        "change": "Add",
+        "bytes": 190,
+        "percent": null
+      }
+    },
+    {
+      "status": "Pass",
+      "maxSize": 1024,
+      "compression": "gzip",
+      "pattern": "formatters.cjs",
+      "path": "formatters.cjs",
+      "size": 169,
+      "diff": {
+        "change": "Add",
+        "bytes": 169,
+        "percent": null
+      }
+    },
+    {
+      "status": "Pass",
+      "maxSize": 1024,
+      "compression": "gzip",
+      "pattern": "formatters.js",
+      "path": "formatters.js",
+      "size": 152,
+      "diff": {
+        "change": "Add",
+        "bytes": 152,
+        "percent": null
+      }
+    },
+    {
+      "status": "Pass",
+      "maxSize": 1024,
+      "compression": "gzip",
+      "pattern": "index.cjs",
+      "path": "index.cjs",
+      "size": 462,
+      "diff": {
+        "change": "Add",
+        "bytes": 462,
+        "percent": null
+      }
+    },
+    {
+      "status": "Pass",
+      "maxSize": 1024,
+      "compression": "gzip",
+      "pattern": "index.js",
+      "path": "index.js",
+      "size": 290,
+      "diff": {
+        "change": "Add",
+        "bytes": 290,
+        "percent": null
+      }
+    },
+    {
+      "status": "Pass",
+      "maxSize": 1024,
+      "compression": "gzip",
+      "pattern": "operations.cjs",
+      "path": "operations.cjs",
+      "size": 390,
+      "diff": {
+        "change": "Add",
+        "bytes": 390,
+        "percent": null
+      }
+    },
+    {
+      "status": "Pass",
+      "maxSize": 1024,
+      "compression": "gzip",
+      "pattern": "operations.js",
+      "path": "operations.js",
+      "size": 235,
+      "diff": {
+        "change": "Add",
+        "bytes": 235,
+        "percent": null
+      }
+    },
+    {
+      "status": "Pass",
+      "maxSize": 1024,
+      "compression": "gzip",
+      "pattern": "utils.cjs",
+      "path": "utils.cjs",
+      "size": 161,
+      "diff": {
+        "change": "Add",
+        "bytes": 161,
+        "percent": null
+      }
+    },
+    {
+      "status": "Pass",
+      "maxSize": 1024,
+      "compression": "gzip",
+      "pattern": "utils.js",
+      "path": "utils.js",
+      "size": 141,
+      "diff": {
+        "change": "Add",
+        "bytes": 141,
+        "percent": null
+      }
+    }
+  ],
+  "groups": [
+    {
+      "status": "Pass",
+      "maxSize": 25600,
+      "compression": "gzip",
+      "name": "All Bundles",
+      "pattern": "**/*.{js,cjs}",
+      "path": "**/*.{js,cjs}",
+      "size": 12223,
+      "diff": {
+        "change": "Add",
+        "bytes": 12223,
+        "percent": null
+      }
+    },
+    {
+      "status": "Pass",
+      "maxSize": 8192,
+      "compression": "gzip",
+      "name": "Entry Point Bundles",
+      "pattern": "{index,core,operations,currencies,formatters,utils}.{js,cjs}",
+      "path": "{index,core,operations,currencies,formatters,utils}.{js,cjs}",
+      "size": 3158,
+      "diff": {
+        "change": "Add",
+        "bytes": 3158,
+        "percent": null
+      }
+    }
+  ],
+  "stats": {
+    "currBranchSize": 3158,
+    "baseBranchSize": 0,
+    "diff": {
+      "bytes": 3158,
+      "percent": null
+    }
+  },
+  "status": "Pass",
+  "metadata": {}
+}
