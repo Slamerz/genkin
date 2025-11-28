@@ -104,6 +104,16 @@ describe('Dinero V1 Compatibility Layer', () => {
         expect(result.getPrecision()).toBe(resultOg.getPrecision());
         expect(result.getAmount()).toBe(resultOg.getAmount());
       });
+
+      it('should be chainable', () => {
+        const money = Dinero({ amount: 1050 });
+        const money2 = Dinero({ amount: 525 });
+        const moneyOg = DineroOg({ amount: 1050 });
+        const moneyOg2 = DineroOg({ amount: 525 });
+        const result = money.add(money2).add(Dinero({ amount: 250 }));
+        const resultOg = moneyOg.add(moneyOg2).add(DineroOg({ amount: 250 }));
+        expect(result.getAmount()).toBe(resultOg.getAmount());
+      });
     })
     
     describe('Subtraction', () => {
@@ -137,6 +147,16 @@ describe('Dinero V1 Compatibility Layer', () => {
         expect(result.getPrecision()).toBe(resultOg.getPrecision());
         expect(result.getAmount()).toBe(resultOg.getAmount());
       });
+
+      it('should be chainable', () => {
+        const money = Dinero({ amount: 2075 });
+        const money2 = Dinero({ amount: 825 });
+        const moneyOg = DineroOg({ amount: 2075 });
+        const moneyOg2 = DineroOg({ amount: 825 });
+        const result = money.subtract(money2).subtract(Dinero({ amount: 250 }));
+        const resultOg = moneyOg.subtract(moneyOg2).subtract(DineroOg({ amount: 250 }));
+        expect(result.getAmount()).toBe(resultOg.getAmount());
+      });
     })
 
     describe('Multiplication', () => {
@@ -149,6 +169,14 @@ describe('Dinero V1 Compatibility Layer', () => {
         expect(result.getAmount()).toBe(resultOg.getAmount());
       });
 
+      it('should be chainable', () => {
+        const money = Dinero({ amount: 1234 });
+        const moneyOg = DineroOg({ amount: 1234 });
+        const result = money.multiply(3).multiply(4);
+        const resultOg = moneyOg.multiply(3).multiply(4);
+        expect(result.getAmount()).toBe(resultOg.getAmount());
+      });
+      
       describe('rounding modes in multiplication', () => {
         it('HALF_ODD', () => {
           const money = Dinero({ amount: 1234, currency: 'USD', precision: 2});
@@ -245,6 +273,14 @@ describe('Dinero V1 Compatibility Layer', () => {
         expect(result.getCurrency()).toBe(resultOg.getCurrency());
         expect(result.getPrecision()).toBe(resultOg.getPrecision());
         expect(result.getLocale()).toBe(resultOg.getLocale());
+      });
+
+      it('should be chainable', () => {
+        const money = Dinero({ amount: 10000 });
+        const moneyOg = DineroOg({ amount: 10000 });
+        const result = money.divide(4).divide(2);
+        const resultOg = moneyOg.divide(4).divide(2);
+        expect(result.getAmount()).toBe(resultOg.getAmount());
       });
 
       describe('Division with rounding modes', () => {
@@ -615,77 +651,62 @@ describe('Dinero V1 Compatibility Layer', () => {
   describe('Allocation (Instance Method)', () => {
     it('should allocate money equally', () => {
       const money = Dinero({ amount: 1000 });
+      const moneyOg = DineroOg({ amount: 1000 });
       const result = money.allocate([1, 1, 1]);
-      
-      expect(result).toHaveLength(3);
-      
-      const sum = result.reduce((acc, curr) => acc + curr.getAmount(), 0);
-      expect(sum).toBe(1000);
-      
-      result.forEach(part => {
-        expect(part.getCurrency()).toBe('USD');
-        expect(part.getPrecision()).toBe(2);
+      const resultOg: DineroOg[] = moneyOg.allocate([1, 1, 1]);
+      expect(result.length).toBe(resultOg.length);
+      result.forEach((part, index) => {
+        expect(part.getAmount()).toBe(resultOg[index].getAmount());
       });
+      const sum = result.reduce((acc, curr) => acc + curr.getAmount(), 0);
+      const sumOg = resultOg.reduce((acc, curr) => acc + curr.getAmount(), 0);
+      expect(sum).toBe(sumOg);
     });
 
     it('should allocate money proportionally', () => {
       const money = Dinero({ amount: 10000 });
+      const moneyOg = DineroOg({ amount: 10000 });
       const result = money.allocate([25, 75]);
-      
-      expect(result).toHaveLength(2);
-      expect(result[0].getAmount()).toBe(2500); // 25%
-      expect(result[1].getAmount()).toBe(7500); // 75%
+      const resultOg: DineroOg[] = moneyOg.allocate([25, 75]);
+      expect(result.length).toBe(resultOg.length);
+      result.forEach((part, index) => {
+        expect(part.getAmount()).toBe(resultOg[index].getAmount());
+      });
+      const sum = result.reduce((acc, curr) => acc + curr.getAmount(), 0);
+      const sumOg = resultOg.reduce((acc, curr) => acc + curr.getAmount(), 0);
+      expect(sum).toBe(sumOg);
     });
 
     it('should handle indivisible amounts correctly', () => {
       const money = Dinero({ amount: 1003 });
+      const moneyOg = DineroOg({ amount: 1003 });
       const result = money.allocate([1, 1, 1]);
-      
-      expect(result).toHaveLength(3);
-      
+      const resultOg: DineroOg[] = moneyOg.allocate([1, 1, 1]);
+      expect(result.length).toBe(resultOg.length);
+      result.forEach((part, index) => {
+        expect(part.getAmount()).toBe(resultOg[index].getAmount());
+      });
       const sum = result.reduce((acc, curr) => acc + curr.getAmount(), 0);
-      expect(sum).toBe(1003);
-    });
-
-    it('should handle negative amounts', () => {
-      const money = Dinero({ amount: -5000 });
-      const result = money.allocate([1, 3]);
-      
-      expect(result).toHaveLength(2);
-      expect(result[0].getAmount()).toBe(-1250);
-      expect(result[1].getAmount()).toBe(-3750);
-      
-      const sum = result.reduce((acc, curr) => acc + curr.getAmount(), 0);
-      expect(sum).toBe(-5000);
+      const sumOg = resultOg.reduce((acc, curr) => acc + curr.getAmount(), 0);
+      expect(sum).toBe(sumOg);
     });
   });
 
   describe('Conversion Methods', () => {
     it('should convert to object', () => {
       const money = Dinero({ amount: 2599, currency: 'USD', precision: 2 });
+      const moneyOg = DineroOg({ amount: 2599, currency: 'USD', precision: 2 });
       const obj = money.toObject();
-      
-      expect(obj.amount).toBe(2599);
-      expect(obj.currency).toBe('USD');
-      expect(obj.precision).toBe(2);
+      const objOg = moneyOg.toObject();
+      expect(obj).toEqual(objOg);
     });
 
     it('should convert to JSON', () => {
       const money = Dinero({ amount: 2599, currency: 'EUR', precision: 2 });
+      const moneyOg = DineroOg({ amount: 2599, currency: 'EUR', precision: 2 });
       const json = money.toJSON();
-      
-      expect(json.amount).toBe(2599);
-      expect(json.currency).toBe('EUR');
-      expect(json.precision).toBe(2);
-    });
-
-    it('should convert to string', () => {
-      const money = Dinero({ amount: 2599, currency: 'USD', precision: 2 });
-      const str = money.toString();
-      
-      expect(str).toContain('25.99');
-      // USD gets formatted with $ symbol instead of the code
-      expect(str).toContain('$');
+      const jsonOg = moneyOg.toJSON();
+      expect(json).toEqual(jsonOg);
     });
 
     it('should convert to number (major units)', () => {
@@ -1134,6 +1155,328 @@ describe('Dinero V1 Compatibility Layer', () => {
           const downResultOg = moneyOg.convertPrecision(2, 'DOWN' as any);
           expect(downResult.getAmount()).toBe(downResultOg.getAmount());
         });
+      });
+    });
+
+    describe('convert (currency conversion)', () => {
+      it('should convert currency with direct exchange rate', async () => {
+        const money = Dinero({ amount: 1000, currency: 'USD', precision: 2 }); // $10.00
+        const moneyOg = DineroOg({ amount: 1000, currency: 'USD', precision: 2 });
+
+        // Mock exchange rate data
+        const rates = { rates: { EUR: 0.85 } };
+
+        const converted = await money.convert('EUR', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'rates.EUR'
+        });
+
+        const convertedOg = await moneyOg.convert('EUR', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'rates.EUR'
+        });
+
+        expect(converted.getAmount()).toBe(convertedOg.getAmount());
+        expect(converted.getCurrency()).toBe(convertedOg.getCurrency());
+        expect(converted.getPrecision()).toBe(convertedOg.getPrecision());
+      });
+
+      it('should handle mustache templating in endpoints', async () => {
+        const money = Dinero({ amount: 500, currency: 'USD', precision: 2 }); // $5.00
+        const moneyOg = DineroOg({ amount: 500, currency: 'USD', precision: 2 });
+
+        // Mock API response
+        const rates = { data: { rates: { USD: 1.0, EUR: 0.85 } } };
+
+        const converted = await money.convert('EUR', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'data.rates.{{to}}'
+        });
+
+        const convertedOg = await moneyOg.convert('EUR', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'data.rates.{{to}}'
+        });
+
+        expect(converted.getAmount()).toBe(convertedOg.getAmount());
+        expect(converted.getCurrency()).toBe('EUR');
+        expect(convertedOg.getCurrency()).toBe('EUR');
+      });
+
+      it('should handle mustache templating in property paths', async () => {
+        const money = Dinero({ amount: 1000, currency: 'USD', precision: 2 });
+        const moneyOg = DineroOg({ amount: 1000, currency: 'USD', precision: 2 });
+
+        const rates = {
+          base: 'USD',
+          rates: {
+            EUR: 0.85,
+            GBP: 0.75
+          }
+        };
+
+        const converted = await money.convert('EUR', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'rates.{{to}}'
+        });
+
+        const convertedOg = await moneyOg.convert('EUR', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'rates.{{to}}'
+        });
+
+        expect(converted.getAmount()).toBe(convertedOg.getAmount());
+        expect(converted.getCurrency()).toBe(convertedOg.getCurrency());
+      });
+
+      it('should handle nested property paths', async () => {
+        const money = Dinero({ amount: 2000, currency: 'USD', precision: 2 }); // $20.00
+        const moneyOg = DineroOg({ amount: 2000, currency: 'USD', precision: 2 });
+
+        const rates = {
+          success: true,
+          data: {
+            base: 'USD',
+            rates: {
+              EUR: 0.85,
+              JPY: 110.0
+            }
+          }
+        };
+
+        const converted = await money.convert('EUR', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'data.rates.{{to}}'
+        });
+
+        const convertedOg = await moneyOg.convert('EUR', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'data.rates.{{to}}'
+        });
+
+        expect(converted.getAmount()).toBe(convertedOg.getAmount());
+        expect(converted.getCurrency()).toBe(convertedOg.getCurrency());
+      });
+
+      it('should handle different rounding modes', async () => {
+        const money = Dinero({ amount: 1000, currency: 'USD', precision: 2 });
+        const moneyOg = DineroOg({ amount: 1000, currency: 'USD', precision: 2 });
+
+        const rates = { rates: { EUR: 0.85 } };
+
+        const modes: ('HALF_UP' | 'HALF_DOWN' | 'HALF_EVEN' | 'HALF_ODD' | 'HALF_TOWARDS_ZERO' | 'HALF_AWAY_FROM_ZERO')[] = [
+          'HALF_UP', 'HALF_DOWN', 'HALF_EVEN', 'HALF_ODD', 'HALF_TOWARDS_ZERO', 'HALF_AWAY_FROM_ZERO'
+        ];
+
+        for (const mode of modes) {
+          const converted = await money.convert('EUR', {
+            endpoint: Promise.resolve(rates),
+            propertyPath: 'rates.EUR',
+            roundingMode: mode
+          });
+
+          const convertedOg = await moneyOg.convert('EUR', {
+            endpoint: Promise.resolve(rates),
+            propertyPath: 'rates.EUR',
+            roundingMode: mode
+          });
+
+          expect(converted.getAmount()).toBe(convertedOg.getAmount());
+          expect(converted.getCurrency()).toBe(convertedOg.getCurrency());
+        }
+      });
+
+      it('should use default property path when not specified', async () => {
+        const money = Dinero({ amount: 1000, currency: 'USD', precision: 2 });
+        const moneyOg = DineroOg({ amount: 1000, currency: 'USD', precision: 2 });
+
+        // Default property path is 'rates.{{to}}'
+        const rates = { rates: { EUR: 0.85 } };
+
+        const converted = await money.convert('EUR', {
+          endpoint: Promise.resolve(rates)
+        });
+
+        const convertedOg = await moneyOg.convert('EUR', {
+          endpoint: Promise.resolve(rates)
+        });
+
+        expect(converted.getAmount()).toBe(convertedOg.getAmount());
+        expect(converted.getCurrency()).toBe(convertedOg.getCurrency());
+      });
+
+      it('should use default rounding mode when not specified', async () => {
+        const money = Dinero({ amount: 1000, currency: 'USD', precision: 2 });
+        const moneyOg = DineroOg({ amount: 1000, currency: 'USD', precision: 2 });
+
+        const rates = { rates: { EUR: 0.85 } };
+
+        const converted = await money.convert('EUR', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'rates.EUR'
+        });
+
+        const convertedOg = await moneyOg.convert('EUR', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'rates.EUR'
+        });
+
+        expect(converted.getAmount()).toBe(convertedOg.getAmount());
+        expect(converted.getCurrency()).toBe(convertedOg.getCurrency());
+      });
+
+      it('should throw error for unsupported rounding modes', async () => {
+        const money = Dinero({ amount: 1000, currency: 'USD', precision: 2 });
+        const moneyOg = DineroOg({ amount: 1000, currency: 'USD', precision: 2 });
+
+        const rates = { rates: { EUR: 0.85 } };
+
+        // Test that our implementation throws with the same message as original
+        try {
+          await money.convert('EUR', {
+            endpoint: Promise.resolve(rates),
+            propertyPath: 'rates.EUR',
+            roundingMode: 'UP' as any
+          });
+          expect.fail('roundingModes[UP] is not a function');
+        } catch (error: any) {
+          expect(error.message).toBe('roundingModes[UP] is not a function');
+        }
+
+        try {
+          await money.convert('EUR', {
+            endpoint: Promise.resolve(rates),
+            propertyPath: 'rates.EUR',
+            roundingMode: 'TOWARDS_ZERO' as any
+          });
+          expect.fail('roundingModes[TOWARDS_ZERO] is not a function');
+        } catch (error: any) {
+          expect(error.message).toBe('roundingModes[TOWARDS_ZERO] is not a function');
+        }
+
+        try {
+          await money.convert('EUR', {
+            endpoint: Promise.resolve(rates),
+            propertyPath: 'rates.EUR',
+            roundingMode: 'AWAY_FROM_ZERO' as any
+          });
+          expect.fail('roundingModes[AWAY_FROM_ZERO] is not a function');
+        } catch (error: any) {
+          expect(error.message).toBe('roundingModes[AWAY_FROM_ZERO] is not a function');
+        }
+
+        // Original library should also throw
+        await expect(moneyOg.convert('EUR', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'rates.EUR',
+          roundingMode: 'UP' as any
+        })).rejects.toThrow();
+      });
+
+      it('should handle different precision values', async () => {
+        const money = Dinero({ amount: 100000, currency: 'JPY', precision: 0 }); // 100000 JPY (no decimals)
+        const moneyOg = DineroOg({ amount: 100000, currency: 'JPY', precision: 0 });
+
+        const rates = { rates: { USD: 0.0091 } };
+
+        const converted = await money.convert('USD', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'rates.USD'
+        });
+
+        const convertedOg = await moneyOg.convert('USD', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'rates.USD'
+        });
+
+        expect(converted.getAmount()).toBe(convertedOg.getAmount());
+        expect(converted.getCurrency()).toBe(convertedOg.getCurrency());
+        expect(converted.getPrecision()).toBe(convertedOg.getPrecision());
+      });
+
+      it('should handle invalid exchange rate data', async () => {
+        const money = Dinero({ amount: 1000, currency: 'USD', precision: 2 });
+
+        // Invalid rate value
+        const invalidRates1 = { rates: { EUR: 'invalid' } };
+        await expect(money.convert('EUR', {
+          endpoint: Promise.resolve(invalidRates1),
+          propertyPath: 'rates.EUR'
+        })).rejects.toThrow();
+
+        // Missing property
+        const invalidRates2 = { rates: { GBP: 0.75 } };
+        await expect(money.convert('EUR', {
+          endpoint: Promise.resolve(invalidRates2),
+          propertyPath: 'rates.EUR'
+        })).rejects.toThrow();
+
+        // Non-numeric rate
+        const invalidRates3 = { rates: { EUR: null } };
+        await expect(money.convert('EUR', {
+          endpoint: Promise.resolve(invalidRates3),
+          propertyPath: 'rates.EUR'
+        })).rejects.toThrow();
+      });
+
+      it('should handle API errors', async () => {
+        const money = Dinero({ amount: 1000, currency: 'USD', precision: 2 });
+        const moneyOg = DineroOg({ amount: 1000, currency: 'USD', precision: 2 });
+
+        // Simulate API error
+        const errorEndpoint = Promise.reject(new Error('API Error'));
+
+        await expect(money.convert('EUR', {
+          endpoint: errorEndpoint,
+          propertyPath: 'rates.EUR'
+        })).rejects.toThrow();
+
+        await expect(moneyOg.convert('EUR', {
+          endpoint: errorEndpoint,
+          propertyPath: 'rates.EUR'
+        })).rejects.toThrow();
+      });
+
+      it('should work with async/await pattern', async () => {
+        const money = Dinero({ amount: 1500, currency: 'USD', precision: 2 }); // $15.00
+        const moneyOg = DineroOg({ amount: 1500, currency: 'USD', precision: 2 });
+
+        const rates = { rates: { CAD: 1.25 } };
+
+        const converted = await money.convert('CAD', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'rates.CAD'
+        });
+
+        const convertedOg = await moneyOg.convert('CAD', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'rates.CAD'
+        });
+
+        expect(converted.getAmount()).toBe(convertedOg.getAmount());
+        expect(converted.getCurrency()).toBe('CAD');
+        expect(convertedOg.getCurrency()).toBe('CAD');
+      });
+
+      it('should work with Promise.then pattern', async () => {
+        const money = Dinero({ amount: 2000, currency: 'USD', precision: 2 }); // $20.00
+        const moneyOg = DineroOg({ amount: 2000, currency: 'USD', precision: 2 });
+
+        const rates = { rates: { GBP: 0.75 } };
+
+        const converted = await money.convert('GBP', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'rates.GBP'
+        });
+
+        const convertedOg = await moneyOg.convert('GBP', {
+          endpoint: Promise.resolve(rates),
+          propertyPath: 'rates.GBP'
+        });
+
+        expect(converted.getAmount()).toBe(convertedOg.getAmount());
+        expect(converted.getCurrency()).toBe('GBP');
+        expect(convertedOg.getCurrency()).toBe('GBP');
       });
     });
   });

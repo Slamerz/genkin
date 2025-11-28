@@ -2,10 +2,110 @@
 // This module provides a Dinero.js v1-compatible API that internally uses Genkin
 
 import { Genkin, genkin } from '../core/genkin.js';
-import { CurrencyCode, Currency, getCurrencyConfig, createCurrency } from '../core/currency.js';
+import { CurrencyCode, Currency, getCurrencyConfig, createCurrency, RoundingMode as CoreRoundingMode } from '../core/currency.js';
 import { add as genkinAdd, subtract as genkinSubtract, multiply as genkinMultiply, divide as genkinDivide, allocate as genkinAllocate, percentage as genkinPercentage } from '../operations/arithmetic.js';
 import { equals as genkinEquals, lessThan as genkinLessThan, lessThanOrEqual as genkinLessThanOrEqual, greaterThan as genkinGreaterThan, greaterThanOrEqual as genkinGreaterThanOrEqual, isZero as genkinIsZero, isPositive as genkinIsPositive, isNegative as genkinIsNegative } from '../operations/comparison.js';
 import type { AllocationRatio } from '../operations/arithmetic.js';
+
+/**
+ * Global exchange rates API configuration
+ */
+export interface GlobalExchangeRatesApi {
+  endpoint?: string | Promise<any>;
+  propertyPath?: string;
+  headers?: Record<string, string>;
+}
+
+/**
+ * Global rounding mode for currency operations
+ */
+export let globalRoundingMode: RoundingMode = 'HALF_EVEN';
+
+/**
+ * Global exchange rates API configuration
+ */
+export let globalExchangeRatesApi: GlobalExchangeRatesApi = {};
+
+
+/**
+ * Flatten a nested object into a single-level object with dot notation keys
+ */
+function flattenObject(obj: any, prefix = ''): Record<string, any> {
+  const flattened: Record<string, any> = {};
+
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      const newKey = prefix ? `${prefix}.${key}` : key;
+
+      if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
+        Object.assign(flattened, flattenObject(obj[key], newKey));
+      } else {
+        flattened[newKey] = obj[key];
+      }
+    }
+  }
+
+  return flattened;
+}
+
+/**
+ * Assert utility function
+ */
+function assert(condition: boolean, message: string, ErrorType: typeof Error = Error): void {
+  if (!condition) {
+    throw new ErrorType(message);
+  }
+}
+
+/**
+ * CurrencyConverter class for handling exchange rate operations
+ */
+function CurrencyConverter(options: {
+  endpoint?: string | Promise<any>;
+  propertyPath: string;
+  headers?: Record<string, string>;
+}) {
+  const mergeTags = (string = '', tags: Record<string, string>) => {
+    for (const tag in tags) {
+      string = string.replace(new RegExp(`{{${tag}}}`, 'g'), tags[tag]);
+    }
+    return string;
+  };
+
+  const getRatesFromRestApi = (from: string, to: string) => {
+    if (typeof options.endpoint !== 'string') {
+      throw new Error('Endpoint must be a string for REST API calls');
+    }
+    return fetch(mergeTags(options.endpoint, { from, to }), {
+      headers: options.headers
+    });
+  };
+
+  return {
+    getExchangeRate(from: string, to: string) {
+      let ratesPromise: Promise<any>;
+
+      if (typeof options.endpoint === 'string') {
+        ratesPromise = getRatesFromRestApi(from, to).then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        });
+      } else if (options.endpoint) {
+        // It's a promise
+        ratesPromise = options.endpoint;
+      } else {
+        // No endpoint provided
+        return Promise.reject(new Error('No endpoint provided for currency conversion'));
+      }
+
+      return ratesPromise.then(data =>
+        flattenObject(data)[mergeTags(options.propertyPath, { from, to })]
+      );
+    }
+  };
+}
 
 /**
  * Dinero v1 compatible currency interface
@@ -26,6 +126,25 @@ export interface DineroV1Options {
 }
 
 export type RoundingMode = 'HALF_UP' | 'HALF_DOWN' | 'HALF_EVEN' | 'HALF_ODD' | 'UP' | 'DOWN' | 'TOWARDS_ZERO' | 'AWAY_FROM_ZERO' | 'HALF_TOWARDS_ZERO' | 'HALF_AWAY_FROM_ZERO';
+
+/**
+ * Convert wrapper RoundingMode to core RoundingMode
+ */
+function toCoreRoundingMode(mode: RoundingMode): CoreRoundingMode {
+  switch (mode) {
+    case 'HALF_UP': return CoreRoundingMode.ROUND_HALF_UP;
+    case 'HALF_DOWN': return CoreRoundingMode.ROUND_HALF_DOWN;
+    case 'HALF_EVEN': return CoreRoundingMode.ROUND_HALF_EVEN;
+    case 'HALF_ODD': return CoreRoundingMode.ROUND_HALF_ODD;
+    case 'HALF_TOWARDS_ZERO': return CoreRoundingMode.ROUND_HALF_TOWARDS_ZERO;
+    case 'HALF_AWAY_FROM_ZERO': return CoreRoundingMode.ROUND_HALF_AWAY_FROM_ZERO;
+    case 'UP': return CoreRoundingMode.ROUND_UP;
+    case 'DOWN': return CoreRoundingMode.ROUND_DOWN;
+    case 'TOWARDS_ZERO': return CoreRoundingMode.ROUND_TOWARDS_ZERO;
+    case 'AWAY_FROM_ZERO': return CoreRoundingMode.ROUND_AWAY_FROM_ZERO;
+    default: return CoreRoundingMode.ROUND_HALF_AWAY_FROM_ZERO;
+  }
+}
 
 /**
  * Dinero v1 compatible instance interface
@@ -67,6 +186,7 @@ export interface DineroV1Instance {
   toUnit(): number;
   toRoundedUnit(digits: number, rounding?: RoundingMode): number;
   convertPrecision(precision: number, rounding?: RoundingMode): DineroV1Instance;
+  convert(currency: string, options?: { endpoint: string | Promise<any>, propertyPath?: string, headers?: Record<string, string>, roundingMode?: RoundingMode }): Promise<DineroV1Instance>;
 
   // Utility
   hasSubUnits(): boolean;
@@ -268,17 +388,13 @@ class DineroV1Wrapper implements DineroV1Instance {
     return this.toObject();
   }
 
-  toString(): string {
-    return this._genkin.toString();
-  }
-
   toFormat(format?: string, rounding?: RoundingMode): string {
     // Basic formatting - in a full implementation, you'd support more format strings
     if (format) {
       // Simple placeholder implementation - could be enhanced
       return this._genkin.toString();
     }
-    return this._genkin.toString();
+    return this.toString(); // Match original behavior - toFormat() without args returns same as toString()
   }
 
   toNumber(): number {
@@ -365,95 +481,53 @@ class DineroV1Wrapper implements DineroV1Instance {
     if (precision < 0 || !Number.isInteger(precision)) {
       throw new Error('Precision must be a non-negative integer');
     }
-    
-    const currentPrecision = this._genkin.precision;
-    const currentAmount = this._genkin.minorUnits;
-    
-    let newAmount: number;
-    
-    if (precision === currentPrecision) {
-      // No conversion needed
-      newAmount = currentAmount;
-    } else if (precision > currentPrecision) {
-      // Increasing precision - multiply by power of 10
-      const scaleFactor = Math.pow(10, precision - currentPrecision);
-      newAmount = currentAmount * scaleFactor;
-    } else {
-      // Decreasing precision - divide and potentially round
-      const scaleFactor = Math.pow(10, currentPrecision - precision);
-      const unrounded = currentAmount / scaleFactor;
-      
-      // Apply rounding
-      switch (rounding) {
-        case 'HALF_UP':
-          newAmount = Math.round(unrounded + Number.EPSILON);
-          break;
-        case 'HALF_DOWN':
-          // HALF_DOWN: when exactly halfway, round towards negative infinity
-          const decimal = unrounded - Math.floor(unrounded);
-          if (Math.abs(decimal - 0.5) < Number.EPSILON) {
-            newAmount = Math.floor(unrounded);
-          } else {
-            newAmount = Math.round(unrounded);
-          }
-          break;
-        case 'HALF_EVEN':
-          const truncated = Math.trunc(unrounded);
-          const fractional = unrounded - truncated;
-          if (Math.abs(fractional) === 0.5) {
-            newAmount = truncated % 2 === 0 ? truncated : truncated + 1;
-          } else {
-            newAmount = Math.round(unrounded);
-          }
-          break;
-        case 'HALF_ODD':
-          const truncatedOdd = Math.trunc(unrounded);
-          const fractionalOdd = unrounded - truncatedOdd;
-          if (Math.abs(fractionalOdd) === 0.5) {
-            const isOdd = Math.abs(truncatedOdd) % 2 === 1;
-            if (isOdd) {
-              newAmount = truncatedOdd;
-            } else {
-              newAmount = unrounded >= 0 ? truncatedOdd + 1 : truncatedOdd - 1;
-            }
-          } else {
-            newAmount = Math.round(unrounded);
-          }
-          break;
-        case 'HALF_TOWARDS_ZERO':
-          const truncatedTowardsZero = Math.trunc(unrounded);
-          const fractionalTowardsZero = Math.abs(unrounded - truncatedTowardsZero);
-          if (fractionalTowardsZero === 0.5) {
-            newAmount = unrounded >= 0 ? Math.floor(unrounded) : Math.ceil(unrounded);
-          } else {
-            newAmount = Math.round(unrounded);
-          }
-          break;
-        case 'UP':
-          // Original library throws for UP mode in convertPrecision
-          throw new TypeError(`roundingModes[${rounding}] is not a function`);
-        case 'DOWN':
-          newAmount = Math.floor(unrounded);
-          break;
-        case 'TOWARDS_ZERO':
-          // Original library throws for TOWARDS_ZERO mode in convertPrecision
-          throw new TypeError(`roundingModes[${rounding}] is not a function`);
-        case 'AWAY_FROM_ZERO':
-          // Original library throws for AWAY_FROM_ZERO mode in convertPrecision
-          throw new TypeError(`roundingModes[${rounding}] is not a function`);
-        case 'HALF_AWAY_FROM_ZERO':
-        default:
-          // Default rounding mode - HALF_AWAY_FROM_ZERO
-          newAmount = unrounded >= 0 ? Math.round(unrounded) : Math.floor(unrounded);
-          break;
-      }
+
+    // Handle unsupported rounding modes that should throw
+    if (rounding === 'UP' || rounding === 'TOWARDS_ZERO' || rounding === 'AWAY_FROM_ZERO') {
+      throw new TypeError(`roundingModes[${rounding}] is not a function`);
     }
-    
-    return Dinero({
-      amount: newAmount,
-      currency: this._genkin.currencyCode,
-      precision: precision,
-    });
+
+    const coreRoundingMode = toCoreRoundingMode(rounding);
+    const convertedGenkin = this._genkin.convertPrecision(precision, coreRoundingMode);
+
+    const wrapper = new DineroV1Wrapper(convertedGenkin);
+    wrapper._localeValue = this._localeValue; // Preserve locale
+    return wrapper;
+  }
+
+  convert(currency: string, options: { endpoint?: string | Promise<any>, propertyPath?: string, headers?: Record<string, string>, roundingMode?: RoundingMode } = {}): Promise<DineroV1Instance> {
+    const {
+      endpoint = globalExchangeRatesApi.endpoint,
+      propertyPath = globalExchangeRatesApi.propertyPath || 'rates.{{to}}',
+      headers = globalExchangeRatesApi.headers,
+      roundingMode = globalRoundingMode
+    } = options;
+
+    const finalOptions = Object.assign(
+      {},
+      {
+        endpoint,
+        propertyPath,
+        headers,
+        roundingMode
+      }
+    );
+
+    return CurrencyConverter(finalOptions)
+      .getExchangeRate(this.getCurrency(), currency)
+      .then(rate => {
+        assert(
+          rate !== undefined,
+          `No rate was found for the destination currency "${currency}".`,
+          TypeError
+        );
+
+        return Dinero({
+          amount: Math.round(this.getAmount() * parseFloat(rate)),
+          currency,
+          precision: this.getPrecision()
+        });
+      });
   }
 
   // Utility methods
