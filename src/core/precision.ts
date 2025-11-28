@@ -48,16 +48,49 @@ export function applyRounding(value: number, mode: RoundingMode): number {
     case RoundingMode.ROUND_HALF_DOWN:
       return Math.ceil(value - 0.5);
     
+    case RoundingMode.ROUND_HALF_ODD:
+      // Round to nearest, ties to odd
+      const roundedOdd = Math.round(value);
+      const diffOdd = Math.abs(value - roundedOdd);
+
+      if (diffOdd === 0.5) {
+        return roundedOdd % 2 === 1 ? roundedOdd : (value > roundedOdd ? roundedOdd + 1 : roundedOdd - 1);
+      }
+
+      return roundedOdd;
+
+    case RoundingMode.ROUND_HALF_TOWARDS_ZERO:
+      // Round to nearest, ties towards zero
+      const roundedTowardsZero = Math.round(value);
+      const diffTowardsZero = Math.abs(value - roundedTowardsZero);
+
+      if (diffTowardsZero === 0.5) {
+        return value >= 0 ? Math.floor(value) : Math.ceil(value);
+      }
+
+      return roundedTowardsZero;
+
+    case RoundingMode.ROUND_HALF_AWAY_FROM_ZERO:
+      // Round to nearest, ties away from zero
+      const roundedAway = Math.round(value);
+      const diffAway = Math.abs(value - roundedAway);
+
+      if (diffAway === 0.5) {
+        return value >= 0 ? Math.ceil(value) : Math.floor(value);
+      }
+
+      return roundedAway;
+
     case RoundingMode.ROUND_HALF_EVEN:
     default:
       // Banker's rounding - round to nearest even
       const rounded = Math.round(value);
       const diff = Math.abs(value - rounded);
-      
+
       if (diff === 0.5) {
         return rounded % 2 === 0 ? rounded : (value > rounded ? rounded + 1 : rounded - 1);
       }
-      
+
       return rounded;
   }
 }

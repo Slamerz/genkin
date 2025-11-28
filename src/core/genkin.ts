@@ -182,6 +182,46 @@ export class Genkin {
   valueOf(): number {
     return this.amount;
   }
+
+  /**
+   * Convert to a different precision with optional rounding
+   */
+  convertPrecision(newPrecision: number, rounding?: RoundingMode): Genkin {
+    if (newPrecision < 0 || !Number.isInteger(newPrecision)) {
+      throw new Error('Precision must be a non-negative integer');
+    }
+
+    const currentPrecision = this._precision;
+
+    if (newPrecision === currentPrecision) {
+      // No conversion needed
+      return this;
+    }
+
+    let newAmount: number;
+
+    if (newPrecision > currentPrecision) {
+      // Increasing precision - multiply by power of 10
+      const scaleFactor = Math.pow(10, newPrecision - currentPrecision);
+      newAmount = this._amount * scaleFactor;
+    } else {
+      // Decreasing precision - divide by power of 10 and round
+      const scaleFactor = Math.pow(10, currentPrecision - newPrecision);
+      const unrounded = this._amount / scaleFactor;
+
+      // Apply rounding
+      const roundingMode = rounding ?? this._rounding;
+      newAmount = applyRounding(unrounded, roundingMode);
+    }
+
+    // Create new Genkin with the converted amount and new precision
+    return new Genkin(newAmount, {
+      currency: this._currency,
+      precision: newPrecision,
+      rounding: this._rounding,
+      isMinorUnits: true, // The amount is already in minor units
+    });
+  }
 }
 
 /**

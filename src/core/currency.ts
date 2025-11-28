@@ -77,6 +77,12 @@ export enum RoundingMode {
   ROUND_HALF_UP = 'ROUND_HALF_UP',
   /** Round to nearest, ties towards zero */
   ROUND_HALF_DOWN = 'ROUND_HALF_DOWN',
+  /** Round to nearest, ties to odd */
+  ROUND_HALF_ODD = 'ROUND_HALF_ODD',
+  /** Round to nearest, ties towards zero */
+  ROUND_HALF_TOWARDS_ZERO = 'ROUND_HALF_TOWARDS_ZERO',
+  /** Round to nearest, ties away from zero */
+  ROUND_HALF_AWAY_FROM_ZERO = 'ROUND_HALF_AWAY_FROM_ZERO',
 }
 
 /**
