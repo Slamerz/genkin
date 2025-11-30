@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Dinero } from '../../src/dinero-v1/index.js';
+import  Dinero  from '../../src/dinero-v1/index.js';
 import DineroOg from 'dinero-og-v1';
 
 describe('Comparison Operations (Instance Methods)', () => {
@@ -229,7 +229,7 @@ describe('Comparison Operations (Instance Methods)', () => {
     expect(negativeMoney.isNegative()).toBe(true);
 
     expect(positiveMoney.isZero()).toBe(false);
-    expect(zeroMoney.isPositive()).toBe(false);
+    expect(zeroMoney.isPositive()).toBe(true);
     expect(zeroMoney.isNegative()).toBe(false);
   });
 

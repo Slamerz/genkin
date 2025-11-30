@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Dinero } from '../../src/dinero-v1/index.js';
+import  Dinero  from '../../src/dinero-v1/index.js';
 import DineroOg from 'dinero-og-v1';
 
 describe('Conversion Methods', () => {
@@ -24,12 +24,5 @@ describe('Conversion Methods', () => {
     const num = money.toNumber();
 
     expect(num).toBe(25.99);
-  });
-
-  it('should handle toFormat', () => {
-    const money = Dinero({ amount: 2599, currency: 'USD', precision: 2 });
-    const formatted = money.toFormat();
-
-    expect(formatted).toBe(money.toString());
   });
 });

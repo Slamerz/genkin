@@ -78,7 +78,7 @@ export function isZero(genkin: Genkin): boolean {
  * Check if a Genkin instance is positive
  */
 export function isPositive(genkin: Genkin): boolean {
-  return genkin.minorUnits > 0;
+  return genkin.minorUnits >= 0;
 }
 
 /**

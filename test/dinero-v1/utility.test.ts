@@ -1,8 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { Dinero, DineroStatic } from '../../src/dinero-v1/index.js';
+import Dinero from '../../src/dinero-v1/index.js';
 import DineroOg from 'dinero-og-v1';
 
 describe('Utility Methods', () => {
+  it('should check hasCents correctly', () => {
+    const wholeMoney = Dinero({ amount: 10000, currency: 'USD', precision: 2 }); // $100.00
+    const fractionalMoney = Dinero({ amount: 10050, currency: 'USD', precision: 2 }); // $100.50
+
+    expect(wholeMoney.hasCents()).toBe(false);
+    expect(fractionalMoney.hasCents()).toBe(true);
+  });
+
+  it('should handle hasCents with zero precision', () => {
+    const jpyMoney = Dinero({ amount: 1000, currency: 'JPY', precision: 0 });
+
+    expect(jpyMoney.hasCents()).toBe(false);
+  });
+
+  it('should handle hasCents with high precision', () => {
+    const highPrecMoney = Dinero({ amount: 123456, currency: 'BTC', precision: 8 }); // 0.00123456 BTC
+
+    expect(highPrecMoney.hasCents()).toBe(true);
+  });
+
   it('should check hasSubUnits correctly', () => {
     const wholeMoney = Dinero({ amount: 10000, currency: 'USD', precision: 2 }); // $100.00
     const fractionalMoney = Dinero({ amount: 10050, currency: 'USD', precision: 2 }); // $100.50
@@ -30,7 +50,7 @@ describe('Static Utility Functions', () => {
     const money2 = Dinero({ amount: 1055, currency: 'USD', precision: 2 }); // 10.55
     const money3 = Dinero({ amount: 105500, currency: 'USD', precision: 3 }); // 105.500
 
-    const normalized = DineroStatic.normalizePrecision([money1, money2, money3]);
+    const normalized = Dinero.normalizePrecision([money1, money2, money3]);
 
     expect(normalized).toHaveLength(3);
     normalized.forEach(money => {
@@ -47,7 +67,7 @@ describe('Static Utility Functions', () => {
     const money2 = Dinero({ amount: 2000 });
     const money3 = Dinero({ amount: 1500 });
 
-    const min = DineroStatic.minimum([money1, money2, money3]);
+    const min = Dinero.minimum([money1, money2, money3]);
 
     expect(min.getAmount()).toBe(1000);
   });
@@ -57,13 +77,13 @@ describe('Static Utility Functions', () => {
     const money2 = Dinero({ amount: 2000 });
     const money3 = Dinero({ amount: 1500 });
 
-    const max = DineroStatic.maximum([money1, money2, money3]);
+    const max = Dinero.maximum([money1, money2, money3]);
 
     expect(max.getAmount()).toBe(2000);
   });
 
   it('should throw on empty arrays for min/max', () => {
-    expect(() => DineroStatic.minimum([])).toThrow('Cannot find minimum of empty array');
-    expect(() => DineroStatic.maximum([])).toThrow('Cannot find maximum of empty array');
+    expect(() => Dinero.minimum([])).toThrow('Cannot find minimum of empty array');
+    expect(() => Dinero.maximum([])).toThrow('Cannot find maximum of empty array');
   });
 });

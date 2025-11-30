@@ -198,9 +198,9 @@ describe('Comparison Operations', () => {
         expect(isPositive(positive)).toBe(true);
       });
 
-      it('should return false for zero', () => {
+      it('should return true for zero', () => {
         const zero = genkin(0, { currency: 'USD' });
-        expect(isPositive(zero)).toBe(false);
+        expect(isPositive(zero)).toBe(true);
       });
 
       it('should return false for negative values', () => {

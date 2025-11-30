@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Dinero, DineroStatic } from '../../src/dinero-v1/index.js';
+import Dinero from '../../src/dinero-v1/index.js';
 import DineroOg from 'dinero-og-v1';
 
 describe('Precision and Normalization', () => {
@@ -51,7 +51,7 @@ describe('Precision and Normalization', () => {
       const eurMoneyOg = DineroOg({ amount: 1000, currency: 'EUR', precision: 2 });
 
       // Should still normalize precision even with different currencies
-      const normalized = DineroStatic.normalizePrecision([usdMoney, eurMoney]);
+      const normalized = Dinero.normalizePrecision([usdMoney, eurMoney]);
       const normalizedOg = DineroOg.normalizePrecision([usdMoneyOg, eurMoneyOg]);
       expect(normalized[0].getPrecision()).toBe(normalizedOg[0].getPrecision());
       expect(normalized[1].getPrecision()).toBe(normalizedOg[1].getPrecision());
@@ -59,14 +59,14 @@ describe('Precision and Normalization', () => {
 
     it('should handle empty arrays for normalizePrecision', () => {
       // Original Dinero.js throws for empty arrays!
-      expect(() => DineroStatic.normalizePrecision([])).toThrow();
+      expect(() => Dinero.normalizePrecision([])).toThrow();
       expect(() => DineroOg.normalizePrecision([])).toThrow();
     });
 
     it('should handle single element arrays', () => {
       const money = Dinero({ amount: 1000, precision: 2 }); // Use precision 2 to avoid issues
       const moneyOg = DineroOg({ amount: 1000, precision: 2 });
-      const result = DineroStatic.normalizePrecision([money]);
+      const result = Dinero.normalizePrecision([money]);
 
       // Original library has some issues with precision normalization when amount doesn't match precision
       // Let's test with amount that properly matches precision expectations
@@ -91,8 +91,8 @@ describe('Precision and Normalization', () => {
       const eur1500Og = DineroOg({ amount: 1500, currency: 'EUR' });
 
       // Min/max should work within same currency
-      const minUsd = DineroStatic.minimum([usd1000, usd2000]);
-      const maxUsd = DineroStatic.maximum([usd1000, usd2000]);
+      const minUsd = Dinero.minimum([usd1000, usd2000]);
+      const maxUsd = Dinero.maximum([usd1000, usd2000]);
       const minUsdOg = DineroOg.minimum([usd1000Og, usd2000Og]);
       const maxUsdOg = DineroOg.maximum([usd1000Og, usd2000Og]);
 
@@ -100,8 +100,8 @@ describe('Precision and Normalization', () => {
       expect(maxUsd.getAmount()).toBe(maxUsdOg.getAmount());
 
       // Mixed currencies should throw or handle gracefully
-      expect(() => DineroStatic.minimum([usd1000, eur1500])).toThrow();
-      expect(() => DineroStatic.maximum([usd1000, eur1500])).toThrow();
+      expect(() => Dinero.minimum([usd1000, eur1500])).toThrow();
+      expect(() => Dinero.maximum([usd1000, eur1500])).toThrow();
       expect(() => DineroOg.minimum([usd1000Og, eur1500Og])).toThrow();
       expect(() => DineroOg.maximum([usd1000Og, eur1500Og])).toThrow();
     });

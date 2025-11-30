@@ -120,7 +120,7 @@ describe('Dinero.js V2 Alpha Compatibility', () => {
       expect(isNegative(genkinNegative)).toBe(true);
       
       expect(isZero(genkinPositive)).toBe(false);
-      expect(isPositive(genkinZero)).toBe(false);
+      expect(isPositive(genkinZero)).toBe(true);
       expect(isNegative(genkinZero)).toBe(false);
     });
   });

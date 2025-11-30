@@ -17,15 +17,123 @@ export interface GlobalExchangeRatesApi {
 }
 
 /**
- * Global rounding mode for currency operations
+ * Default values for all Dinero objects.
+ *
+ * You can override default values for all subsequent Dinero objects by changing them directly on the global `Dinero` object.
+ * Existing instances won't be affected.
  */
-export let globalRoundingMode: RoundingMode = 'HALF_EVEN';
+export const Defaults = {
+  defaultAmount: 0,
+  defaultCurrency: 'USD',
+  defaultPrecision: 2
+};
 
 /**
- * Global exchange rates API configuration
+ * Global settings for all Dinero objects.
+ *
+ * You can override global values for all subsequent Dinero objects by changing them directly on the global `Dinero` object.
+ * Existing instances won't be affected.
  */
-export let globalExchangeRatesApi: GlobalExchangeRatesApi = {};
+export const Globals = {
+  globalLocale: 'en-US',
+  globalFormat: '$0,0.00',
+  globalRoundingMode: 'HALF_EVEN' as RoundingMode,
+  globalFormatRoundingMode: 'HALF_AWAY_FROM_ZERO' as RoundingMode,
+  globalExchangeRatesApi: {} as GlobalExchangeRatesApi
+};
 
+// Reference to the Dinero function for accessing current global values
+let dineroRef: any = null;
+
+/**
+ * HTTP client function for fetching JSON data
+ * This can be mocked in tests
+ */
+let getJSON = (url: string, options?: { headers?: Record<string, string> }) => {
+  return fetch(url, {
+    headers: options?.headers,
+    ...options
+  }).then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  });
+};
+
+/**
+ * Get the current global locale value
+ */
+function getGlobalLocale(): string {
+  return dineroRef?.globalLocale ?? Globals.globalLocale;
+}
+
+/**
+ * Get the current global format value
+ */
+function getGlobalFormat(): string {
+  return dineroRef?.globalFormat ?? Globals.globalFormat;
+}
+
+/**
+ * Get the current global format rounding mode value
+ */
+function getGlobalFormatRoundingMode(): RoundingMode {
+  return dineroRef?.globalFormatRoundingMode ?? Globals.globalFormatRoundingMode;
+}
+
+/**
+ * Get the current global rounding mode value
+ */
+function getGlobalRoundingMode(): RoundingMode {
+  return dineroRef?.globalRoundingMode ?? Globals.globalRoundingMode;
+}
+
+/**
+ * Get the current global exchange rates API value
+ */
+function getGlobalExchangeRatesApi(): GlobalExchangeRatesApi {
+  return dineroRef?.globalExchangeRatesApi ?? Globals.globalExchangeRatesApi;
+}
+
+/**
+ * Format parser class for toFormat method
+ */
+class Format {
+  private formatString: string;
+
+  constructor(format: string) {
+    this.formatString = format;
+  }
+
+  getMinimumFractionDigits(): number {
+    // Count decimal places in format string (e.g., '$0,0.00' has 2)
+    const decimalMatch = this.formatString.match(/\.([0-9]+)/);
+    return decimalMatch ? decimalMatch[1].length : 0;
+  }
+
+  getCurrencyDisplay(): 'symbol' | 'code' | 'name' {
+    // Check if format starts with currency code (like 'USD0,0.00')
+    if (/^[A-Z]{3}/.test(this.formatString)) {
+      return 'code';
+    }
+    // Default to symbol for formats like '$0,0.00'
+    return 'symbol';
+  }
+
+  getUseGrouping(): boolean {
+    // Check if format includes comma for grouping (like '$0,0.00')
+    return this.formatString.includes(',');
+  }
+
+  getStyle(): 'currency' | 'decimal' {
+    // If format includes currency symbol or code, use currency style
+    if (this.formatString.includes('$') || /^[A-Z]{3}/.test(this.formatString)) {
+      return 'currency';
+    }
+    return 'decimal';
+  }
+}
 
 /**
  * Flatten a nested object into a single-level object with dot notation keys
@@ -76,7 +184,7 @@ function CurrencyConverter(options: {
     if (typeof options.endpoint !== 'string') {
       throw new Error('Endpoint must be a string for REST API calls');
     }
-    return fetch(mergeTags(options.endpoint, { from, to }), {
+    return getJSON(mergeTags(options.endpoint, { from, to }), {
       headers: options.headers
     });
   };
@@ -189,6 +297,7 @@ export interface DineroV1Instance {
   convert(currency: string, options?: { endpoint: string | Promise<any>, propertyPath?: string, headers?: Record<string, string>, roundingMode?: RoundingMode }): Promise<DineroV1Instance>;
 
   // Utility
+  hasCents(): boolean;
   hasSubUnits(): boolean;
   hasSameCurrency(comparate: DineroV1Instance): boolean;
   hasSameAmount(comparate: DineroV1Instance): boolean;
@@ -199,10 +308,12 @@ export interface DineroV1Instance {
  */
 class DineroV1Wrapper implements DineroV1Instance {
   private _genkin: Genkin;
-  private _localeValue: string = 'en-US';
+  private _localeValue?: string;
 
   constructor(genkin: Genkin) {
     this._genkin = genkin;
+    // Capture the current global locale when instance is created
+    this._localeValue = getGlobalLocale();
   }
 
   // Core properties
@@ -363,14 +474,25 @@ class DineroV1Wrapper implements DineroV1Instance {
     if (!Array.isArray(ratios) || ratios.length === 0) {
       throw new TypeError('You must provide a non-empty array of numeric values greater than 0.');
     }
-    
-    // Check that all ratios are positive numbers
-    for (const ratio of ratios) {
-      if (typeof ratio !== 'number' || ratio <= 0) {
-        throw new TypeError('You must provide a non-empty array of numeric values greater than 0.');
-      }
+
+    // Check that all ratios are numbers and none are negative
+    const hasNonNumber = ratios.some(ratio => typeof ratio !== 'number' || !Number.isFinite(ratio));
+    if (hasNonNumber) {
+      throw new TypeError('You must provide a non-empty array of numeric values greater than 0.');
     }
-    
+
+    // Check for negative ratios
+    const hasNegative = ratios.some(ratio => ratio < 0);
+    if (hasNegative) {
+      throw new TypeError('You must provide a non-empty array of numeric values greater than 0.');
+    }
+
+    // Check that not all ratios are zero
+    const totalRatio = ratios.reduce((sum, ratio) => sum + ratio, 0);
+    if (totalRatio === 0) {
+      throw new TypeError('You must provide a non-empty array of numeric values greater than 0.');
+    }
+
     const results = genkinAllocate(this._genkin, ratios);
     return results.map(result => new DineroV1Wrapper(result));
   }
@@ -388,13 +510,68 @@ class DineroV1Wrapper implements DineroV1Instance {
     return this.toObject();
   }
 
-  toFormat(format?: string, rounding?: RoundingMode): string {
-    // Basic formatting - in a full implementation, you'd support more format strings
-    if (format) {
-      // Simple placeholder implementation - could be enhanced
-      return this._genkin.toString();
-    }
-    return this.toString(); // Match original behavior - toFormat() without args returns same as toString()
+  /**
+   * Returns this object formatted as a string.
+   *
+   * The format is a mask which defines how the output string will be formatted.
+   * It defines whether to display a currency, in what format, how many fraction digits to display and whether to use grouping separators.
+   * The output is formatted according to the applying locale.
+   *
+   * Object                       | Format            | String
+   * :--------------------------- | :---------------- | :---
+   * `Dinero({ amount: 500050 })` | `'$0,0.00'`       | $5,000.50
+   * `Dinero({ amount: 500050 })` | `'$0,0'`          | $5,001
+   * `Dinero({ amount: 500050 })` | `'$0'`            | $5001
+   * `Dinero({ amount: 500050 })` | `'$0.0'`          | $5000.5
+   * `Dinero({ amount: 500050 })` | `'USD0,0.0'`      | USD5,000.5
+   * `Dinero({ amount: 500050 })` | `'0,0.0 dollar'`  | 5,000.5 dollars
+   *
+   * Don't try to substitute the `$` sign or the `USD` code with your target currency, nor adapt the format string to the exact format you want.
+   * The format is a mask which defines a pattern and returns a valid, localized currency string.
+   * If you want to display the object in a custom way, either use {@link module:Dinero~getAmount getAmount}, {@link module:Dinero~toUnit toUnit} or {@link module:Dinero~toRoundedUnit toRoundedUnit} and manipulate the output string as you wish.
+   *
+   * {@link module:Dinero~toFormat toFormat} wraps around `Number.prototype.toLocaleString`. For that reason, **format will vary depending on how it's implemented in the end user's environment**.
+   *
+   * You can also use `toLocaleString` directly:
+   * `Dinero().toRoundedUnit(digits, roundingMode).toLocaleString(locale, options)`.
+   *
+   * By default, amounts are rounded using the **half away from zero** rule ([commercial rounding](https://en.wikipedia.org/wiki/Rounding#Round_half_away_from_zero)).
+   * You can also specify a different `roundingMode` to better fit your needs.
+   *
+   * @param  {String} [format='$0,0.00'] - The format mask to format to.
+   * @param  {String} [roundingMode='HALF_AWAY_FROM_ZERO'] - The rounding mode to use: `'HALF_ODD'`, `'HALF_EVEN'`, `'HALF_UP'`, `'HALF_DOWN'`, `'HALF_TOWARDS_ZERO'`, `'HALF_AWAY_FROM_ZERO'` or `'DOWN'`.
+   *
+   * @example
+   * // returns $2,000
+   * Dinero({ amount: 200000 }).toFormat('$0,0')
+   * @example
+   * // returns €50.5
+   * Dinero({ amount: 5050, currency: 'EUR' }).toFormat('$0,0.0')
+   * @example
+   * // returns 100 euros
+   * Dinero({ amount: 10000, currency: 'EUR' }).setLocale('fr-FR').toFormat('0,0 dollar')
+   * @example
+   * // returns 2000
+   * Dinero({ amount: 200000, currency: 'EUR' }).toFormat()
+   * @example
+   * // returns $10
+   * Dinero({ amount: 1050 }).toFormat('$0', 'HALF_EVEN')
+   *
+   * @return {String}
+   */
+  toFormat(format = getGlobalFormat(), roundingMode = getGlobalFormatRoundingMode()): string {
+    const formatter = new Format(format);
+
+    return this.toRoundedUnit(
+      formatter.getMinimumFractionDigits(),
+      roundingMode
+    ).toLocaleString(this.getLocale(), {
+      currencyDisplay: formatter.getCurrencyDisplay(),
+      useGrouping: formatter.getUseGrouping(),
+      minimumFractionDigits: formatter.getMinimumFractionDigits(),
+      style: formatter.getStyle(),
+      currency: this.getCurrency()
+    });
   }
 
   toNumber(): number {
@@ -497,10 +674,10 @@ class DineroV1Wrapper implements DineroV1Instance {
 
   convert(currency: string, options: { endpoint?: string | Promise<any>, propertyPath?: string, headers?: Record<string, string>, roundingMode?: RoundingMode } = {}): Promise<DineroV1Instance> {
     const {
-      endpoint = globalExchangeRatesApi.endpoint,
-      propertyPath = globalExchangeRatesApi.propertyPath || 'rates.{{to}}',
-      headers = globalExchangeRatesApi.headers,
-      roundingMode = globalRoundingMode
+      endpoint = getGlobalExchangeRatesApi().endpoint,
+      propertyPath = getGlobalExchangeRatesApi().propertyPath || 'rates.{{to}}',
+      headers = getGlobalExchangeRatesApi().headers,
+      roundingMode = getGlobalRoundingMode()
     } = options;
 
     const finalOptions = Object.assign(
@@ -531,6 +708,10 @@ class DineroV1Wrapper implements DineroV1Instance {
   }
 
   // Utility methods
+  hasCents(): boolean {
+    return this._genkin.minorUnits % Math.pow(10, this._genkin.precision) !== 0;
+  }
+
   hasSubUnits(): boolean {
     return this._genkin.minorUnits % Math.pow(10, this._genkin.precision) !== 0;
   }
@@ -549,7 +730,7 @@ class DineroV1Wrapper implements DineroV1Instance {
     
     // Original Dinero.js compares amounts regardless of currency!
     // Normalize precision and compare amounts
-    const normalized = DineroStatic.normalizePrecision([this, comparate]);
+    const normalized = Static.normalizePrecision([this, comparate]);
     return normalized[0].getAmount() === normalized[1].getAmount();
   }
 
@@ -634,6 +815,11 @@ export function Dinero(options: DineroV1Options = {}): DineroV1Instance {
     throw new Error('Precision must be a non-negative integer');
   }
 
+  // For compatibility with original Dinero.js, we need to throw error if amount is a float
+  if (typeof amount === 'number' && !Number.isInteger(amount)) {
+    throw new Error('Amount must be an integer');
+  }
+
   // Handle currency parameter
   let genkinCurrency: Currency;
   let currencyCode: CurrencyCode;
@@ -688,7 +874,7 @@ export function Dinero(options: DineroV1Options = {}): DineroV1Instance {
 /**
  * Static utility functions for Dinero v1 compatibility
  */
-export const DineroStatic = {
+export const Static = {
   /**
    * Normalize precision across multiple dinero instances
    */
@@ -771,5 +957,19 @@ export const DineroStatic = {
   },
 };
 
+// Create the final Dinero object with all properties
+const FinalDinero = Object.assign(Dinero, Defaults, Globals, Static);
+
+// Set the reference for global access
+dineroRef = FinalDinero;
+
+// Export getJSON for testing purposes (can be mocked)
+export { getJSON };
+
+// Make getJSON available globally for testing (original Dinero.js behavior)
+if (typeof globalThis !== 'undefined') {
+  (globalThis as any).getJSON = getJSON;
+}
+
 // Export the main Dinero function as default for v1 compatibility
-export default Dinero;
+export default FinalDinero;

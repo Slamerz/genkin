@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Dinero, DineroStatic } from '../../src/dinero-v1/index.js';
+import  Dinero  from '../../src/dinero-v1/index.js';
 import type {  DineroV1Currency } from '../../src/dinero-v1/index.js';
 import DineroOg from 'dinero-og-v1';
 
