@@ -88,6 +88,7 @@ export function dinero({ amount, currency, scale }: DineroOptions): DineroInstan
       precision: scale ?? currency.scale,
       symbol: currency.code,
       name: currency.code,
+      base: 10,
     });
   }
 

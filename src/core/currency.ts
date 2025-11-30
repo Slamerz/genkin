@@ -17,6 +17,8 @@ export interface CurrencyConfig {
   symbol?: string;
   /** Currency name (e.g., 'US Dollar', 'Euro') */
   name?: string;
+  /** The base, or radix of the currency. */
+  base?: number;
 }
 
 /**
@@ -104,6 +106,7 @@ export function getCurrencyConfig(code: CurrencyCode): CurrencyConfig {
     precision: 2,
     symbol: code,
     name: code,
+    base: 10,
   };
 }
 

@@ -1,4 +1,4 @@
-import { Currency, CurrencyConfig, createCurrency } from '../core/currency.js';
+import { Currency, CurrencyConfig, createCurrency } from '../../core/currency.js';
 
 /**
  * USD Currency Configuration
@@ -10,6 +10,7 @@ export const USD_CONFIG: CurrencyConfig = {
   precision: 2,
   symbol: '$',
   name: 'US Dollar',
+  base: 10,
 } as const;
 
 /**
