@@ -1,5 +1,6 @@
 import { Genkin } from '../core/genkin.js';
 import { safeAdd, safeSubtract, safeMultiply, safeDivide } from '../core/precision.js';
+import { assert } from '../dinero-v2/index.js';
 
 /**
  * Represents a scaled ratio for allocation
@@ -19,17 +20,16 @@ export type AllocationRatio = number | ScaledRatio;
  * Both instances must have the same currency
  */
 export function add(a: Genkin, b: Genkin): Genkin {
-  if (!a.hasSameCurrency(b)) {
-    throw new Error(`Cannot add different currencies: ${a.currencyCode} and ${b.currencyCode}`);
-  }
+  assert(a.hasSameCurrency(b), 'Objects must have the same currency.');
+
 
   // Use the higher precision for the result
   const maxPrecision = Math.max(a.precision, b.precision);
-  
+
   // Convert both to the same precision for calculation
   const aUnits = a.minorUnits * Math.pow(10, maxPrecision - a.precision);
   const bUnits = b.minorUnits * Math.pow(10, maxPrecision - b.precision);
-  
+
   const resultUnits = safeAdd(aUnits, bUnits);
   const resultAmount = resultUnits / Math.pow(10, maxPrecision);
 

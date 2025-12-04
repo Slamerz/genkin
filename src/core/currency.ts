@@ -1,3 +1,5 @@
+import { CurrencyRegistry, currencyRegistry } from './registry.js';
+
 /**
  * Currency code following ISO 4217 standard
  */
@@ -97,12 +99,26 @@ export const DEFAULT_CURRENCIES: Record<string, CurrencyConfig> = {
   JPY: { code: 'JPY', numeric: 392, precision: 0, symbol: '¥', name: 'Japanese Yen' },
 };
 
+// Pre-register default currencies in the global registry
+for (const config of Object.values(DEFAULT_CURRENCIES)) {
+  currencyRegistry.register(config);
+}
+
 /**
- * Get currency configuration by code
+ * Get currency configuration by code.
+ * Looks up the currency in the provided registry (or global registry by default).
+ * Falls back to a basic configuration if the currency is not found.
+ * @param code The currency code to look up
+ * @param registry Optional registry to use (defaults to global currencyRegistry)
+ * @returns The currency configuration
  */
-export function getCurrencyConfig(code: CurrencyCode): CurrencyConfig {
-  return DEFAULT_CURRENCIES[code] || {
+export function getCurrencyConfig(
+  code: CurrencyCode,
+  registry: CurrencyRegistry = currencyRegistry
+): CurrencyConfig {
+  return registry.get(code) ?? {
     code,
+    numeric: 0,
     precision: 2,
     symbol: code,
     name: code,

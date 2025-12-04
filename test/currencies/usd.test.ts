@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { USD, USD_CONFIG, USD_CODE, createUSD } from '../../src/currencies/usd.js';
+import { USD, USD_CONFIG, USD_CODE, createUSD } from '../../src/currencies/index.js';
 
 describe('USD Currency', () => {
   describe('USD_CONFIG', () => {
@@ -10,6 +10,7 @@ describe('USD Currency', () => {
         precision: 2,
         symbol: '$',
         name: 'US Dollar',
+        base: 10,
       });
     });
   });

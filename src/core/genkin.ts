@@ -24,7 +24,6 @@ export class Genkin {
   private readonly _precision: number;
   private readonly _rounding: RoundingMode;
 
-
   constructor(amount: number | string, options: GenkinOptions = {}) {
     // Default to USD if no currency provided
     const defaultUSDConfig = getCurrencyConfig('USD');
@@ -33,7 +32,7 @@ export class Genkin {
       format: (amount: number) => `$${amount.toFixed(defaultUSDConfig.precision)}`,
       parse: (value: string) => parseFloat(value.replace(/[$,]/g, '')) || 0,
     };
-    
+
     // Handle both string currency codes and currency objects
     let currency: Currency;
     if (typeof options.currency === 'string') {
@@ -41,16 +40,16 @@ export class Genkin {
     } else {
       currency = options.currency || defaultUSD;
     }
-    
+
     this._currency = currency;
     this._precision = options.precision ?? this._currency.precision;
     this._rounding = options.rounding ?? RoundingMode.ROUND_HALF_EVEN;
 
     // Convert string to number if needed
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    
+
     if (!Number.isFinite(numAmount)) {
-      throw new Error('Amount must be a finite number');
+      throw new Error('[Genkin] Amount must be a finite number');
     }
 
     // Store as minor units to avoid floating-point issues
@@ -166,7 +165,7 @@ export class Genkin {
   toString(): string {
     const config = this.currencyConfig;
     const formatted = this.amount.toFixed(this._precision);
-    
+
     // If currency has a symbol and it's a known currency, put symbol first
     // Otherwise put currency code after the amount
     if (config.symbol && config.symbol !== config.code) {
@@ -188,7 +187,7 @@ export class Genkin {
    */
   convertPrecision(newPrecision: number, rounding?: RoundingMode): Genkin {
     if (newPrecision < 0 || !Number.isInteger(newPrecision)) {
-      throw new Error('Precision must be a non-negative integer');
+      throw new Error('[Genkin] Precision must be a non-negative integer');
     }
 
     const currentPrecision = this._precision;

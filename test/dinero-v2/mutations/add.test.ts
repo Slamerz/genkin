@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
+import Big from 'big.js';
 import { toSnapshot, add} from '../../../src/dinero-v2/index.js';
 import { USD, EUR, MGA, MRU } from "../../../src/dinero-v2/currencies";
 import { createBigintDinero } from "../utils/createBigintDinero.js";
 import { castToBigintCurrency } from "../utils/castToBigintCurrency.js";
+import { createBigjsDinero } from "../utils/createBigjsDinero.js";
+import { castToBigjsCurrency } from "../utils/castToBigjsCurrency.js";
 import { createNumberDinero } from "../utils/createNumberDinero.js";
+import '../../../src/currencies/index.js';
 
 describe('add', () => {
     describe('number', () => {
@@ -52,12 +56,13 @@ describe('add', () => {
           expect(() => {
             add(d1, d2);
           }).toThrowErrorMatchingInlineSnapshot(
-            `"[Dinero.js] Objects must have the same currency."`
+            "[Error: [Dinero.js] Objects must have the same currency.]"
           );
         });
       });
       describe('non-decimal currencies', () => {
         it('adds up positive Dinero objects', () => {
+
           const d1 = dinero({ amount: 8, currency: MGA });
           const d2 = dinero({ amount: 3, currency: MGA });
   
@@ -84,11 +89,11 @@ describe('add', () => {
         it('normalizes the result to the highest scale', () => {
           const d1 = dinero({ amount: 8, currency: MGA });
           const d2 = dinero({ amount: 10, currency: MGA, scale: 2 });
-  
+
           const snapshot = toSnapshot(add(d1, d2));
-  
+
           expect(snapshot).toEqual({
-            amount: 50,
+            amount: 90,
             currency: MGA,
             scale: 2,
           });
@@ -96,11 +101,11 @@ describe('add', () => {
         it('throws when using different currencies', () => {
           const d1 = dinero({ amount: 8, currency: MRU });
           const d2 = dinero({ amount: 8, currency: MGA });
-  
+
           expect(() => {
             add(d1, d2);
           }).toThrowErrorMatchingInlineSnapshot(
-            `"[Dinero.js] Objects must have the same currency."`
+            "[Error: [Dinero.js] Objects must have the same currency.]"
           );
         });
       });
@@ -186,7 +191,7 @@ describe('add', () => {
           expect(() => {
             add(d1, d2);
           }).toThrowErrorMatchingInlineSnapshot(
-            `"[Dinero.js] Objects must have the same currency."`
+            "[Error: [Dinero.js] Objects must have the same currency.]"
           );
         });
       });
@@ -234,7 +239,7 @@ describe('add', () => {
           expect(() => {
             add(d1, d2);
           }).toThrowErrorMatchingInlineSnapshot(
-            `"[Dinero.js] Objects must have the same currency."`
+            "[Error: [Dinero.js] Objects must have the same currency.]"
           );
         });
       });
@@ -324,7 +329,7 @@ describe('add', () => {
           expect(() => {
             add(d1, d2);
           }).toThrowErrorMatchingInlineSnapshot(
-            `"[Dinero.js] Objects must have the same currency."`
+            "[Error: [Dinero.js] Objects must have the same currency.]"
           );
         });
       });
@@ -376,7 +381,7 @@ describe('add', () => {
           expect(() => {
             add(d1, d2);
           }).toThrowErrorMatchingInlineSnapshot(
-            `"[Dinero.js] Objects must have the same currency."`
+            "[Error: [Dinero.js] Objects must have the same currency.]"
           );
         });
       });

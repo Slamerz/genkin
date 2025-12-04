@@ -1,4 +1,4 @@
-// Arithmetic operations
+// Arithmetic operations (number-based, backward compatible)
 export {
   add,
   subtract,
@@ -15,7 +15,7 @@ export type {
   AllocationRatio,
 } from './arithmetic.js';
 
-// Comparison operations
+// Comparison operations (number-based, backward compatible)
 export {
   equals,
   lessThan,
@@ -27,4 +27,11 @@ export {
   isNegative,
   min,
   max,
-} from './comparison.js'; 
+} from './comparison.js';
+
+// Generic operations factory (for custom types)
+export {
+  createArithmeticOperations,
+  createComparisonOperations,
+  createOperations,
+} from './generic.js'; 

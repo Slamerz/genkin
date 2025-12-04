@@ -1,9 +1,9 @@
-import { calculator } from '@dinero.js/calculator-bigint';
-import { createDinero } from 'dinero.js';
-import type { DineroOptions } from 'dinero.js';
+import { createDinero, bigintCalculator } from '../../../src/dinero-v2/index.js';
+import type { DineroOptions, Dinero } from '../../../src/dinero-v2/index.js';
 
-const dinero = createDinero({ calculator });
+// Create a bigint-based dinero factory using the generic createDinero
+const bigintDinero = createDinero({ calculator: bigintCalculator });
 
-export function createBigintDinero(options: DineroOptions<bigint>) {
-  return dinero(options);
+export function createBigintDinero(options: DineroOptions<bigint>): Dinero<bigint> {
+  return bigintDinero(options);
 }

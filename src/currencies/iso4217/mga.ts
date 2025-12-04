@@ -7,10 +7,10 @@ import { Currency, CurrencyConfig, createCurrency } from '../../core/currency.js
 export const MGA_CONFIG: CurrencyConfig = {
   code: 'MGA',
   numeric: 969,
-  precision: 2,
+  precision: 1,
   symbol: '',
   name: 'Malagasy Ariary',
-  base: 10,
+  base: 5,
 } as const;
 
 /**

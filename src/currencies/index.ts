@@ -1,5 +1,220 @@
 // Currencies module - ISO 4217 and other currency definitions
 // This module provides currency configurations and factory functions
+// Importing this module auto-registers all ISO 4217 currencies in the global registry
+
+import { currencyRegistry } from '../core/registry.js';
+
+// Major World Currencies
+import { USD_CONFIG } from './iso4217/usd';
+import { EUR_CONFIG } from './iso4217/eur';
+import { GBP_CONFIG } from './iso4217/gbp';
+import { JPY_CONFIG } from './iso4217/jpy';
+import { CHF_CONFIG } from './iso4217/chf';
+import { CAD_CONFIG } from './iso4217/cad';
+import { AUD_CONFIG } from './iso4217/aud';
+import { NZD_CONFIG } from './iso4217/nzd';
+import { CNY_CONFIG } from './iso4217/cny';
+
+// Asian Currencies
+import { HKD_CONFIG } from './iso4217/hkd';
+import { SGD_CONFIG } from './iso4217/sgd';
+import { KRW_CONFIG } from './iso4217/krw';
+import { INR_CONFIG } from './iso4217/inr';
+import { THB_CONFIG } from './iso4217/thb';
+import { MYR_CONFIG } from './iso4217/myr';
+import { PHP_CONFIG } from './iso4217/php';
+import { IDR_CONFIG } from './iso4217/idr';
+import { VND_CONFIG } from './iso4217/vnd';
+
+// European Currencies
+import { SEK_CONFIG } from './iso4217/sek';
+import { NOK_CONFIG } from './iso4217/nok';
+import { DKK_CONFIG } from './iso4217/dkk';
+import { PLN_CONFIG } from './iso4217/pln';
+import { CZK_CONFIG } from './iso4217/czk';
+import { HUF_CONFIG } from './iso4217/huf';
+import { TRY_CONFIG } from './iso4217/try';
+import { RUB_CONFIG } from './iso4217/rub';
+
+// Middle Eastern Currencies
+import { AED_CONFIG } from './iso4217/aed';
+import { SAR_CONFIG } from './iso4217/sar';
+import { KWD_CONFIG } from './iso4217/kwd';
+import { BHD_CONFIG } from './iso4217/bhd';
+import { OMR_CONFIG } from './iso4217/omr';
+import { JOD_CONFIG } from './iso4217/jod';
+import { ILS_CONFIG } from './iso4217/ils';
+import { EGP_CONFIG } from './iso4217/egp';
+
+// Other Currencies
+import { BRL_CONFIG } from './iso4217/brl';
+import { ZAR_CONFIG } from './iso4217/zar';
+import { MXN_CONFIG } from './iso4217/mxn';
+import { AFN_CONFIG } from './iso4217/afn';
+import { ALL_CONFIG } from './iso4217/all';
+import { AMD_CONFIG } from './iso4217/amd';
+import { ANG_CONFIG } from './iso4217/ang';
+import { AOA_CONFIG } from './iso4217/aoa';
+import { ARS_CONFIG } from './iso4217/ars';
+import { AWG_CONFIG } from './iso4217/awg';
+import { AZN_CONFIG } from './iso4217/azn';
+import { BAM_CONFIG } from './iso4217/bam';
+import { BBD_CONFIG } from './iso4217/bbd';
+import { BDT_CONFIG } from './iso4217/bdt';
+import { BGN_CONFIG } from './iso4217/bgn';
+import { BIF_CONFIG } from './iso4217/bif';
+import { BMD_CONFIG } from './iso4217/bmd';
+import { BND_CONFIG } from './iso4217/bnd';
+import { BOB_CONFIG } from './iso4217/bob';
+import { BOV_CONFIG } from './iso4217/bov';
+import { BSD_CONFIG } from './iso4217/bsd';
+import { BTN_CONFIG } from './iso4217/btn';
+import { BWP_CONFIG } from './iso4217/bwp';
+import { BYN_CONFIG } from './iso4217/byn';
+import { BZD_CONFIG } from './iso4217/bzd';
+import { CDF_CONFIG } from './iso4217/cdf';
+import { CHE_CONFIG } from './iso4217/che';
+import { CHW_CONFIG } from './iso4217/chw';
+import { CLF_CONFIG } from './iso4217/clf';
+import { CLP_CONFIG } from './iso4217/clp';
+import { COP_CONFIG } from './iso4217/cop';
+import { COU_CONFIG } from './iso4217/cou';
+import { CRC_CONFIG } from './iso4217/crc';
+import { CUC_CONFIG } from './iso4217/cuc';
+import { CUP_CONFIG } from './iso4217/cup';
+import { CVE_CONFIG } from './iso4217/cve';
+import { DJF_CONFIG } from './iso4217/djf';
+import { DOP_CONFIG } from './iso4217/dop';
+import { DZD_CONFIG } from './iso4217/dzd';
+import { ERN_CONFIG } from './iso4217/ern';
+import { ETB_CONFIG } from './iso4217/etb';
+import { FJD_CONFIG } from './iso4217/fjd';
+import { FKP_CONFIG } from './iso4217/fkp';
+import { GEL_CONFIG } from './iso4217/gel';
+import { GHS_CONFIG } from './iso4217/ghs';
+import { GIP_CONFIG } from './iso4217/gip';
+import { GMD_CONFIG } from './iso4217/gmd';
+import { GNF_CONFIG } from './iso4217/gnf';
+import { GTQ_CONFIG } from './iso4217/gtq';
+import { GYD_CONFIG } from './iso4217/gyd';
+import { HNL_CONFIG } from './iso4217/hnl';
+import { HRK_CONFIG } from './iso4217/hrk';
+import { HTG_CONFIG } from './iso4217/htg';
+import { IQD_CONFIG } from './iso4217/iqd';
+import { IRR_CONFIG } from './iso4217/irr';
+import { ISK_CONFIG } from './iso4217/isk';
+import { JMD_CONFIG } from './iso4217/jmd';
+import { KES_CONFIG } from './iso4217/kes';
+import { KGS_CONFIG } from './iso4217/kgs';
+import { KHR_CONFIG } from './iso4217/khr';
+import { KMF_CONFIG } from './iso4217/kmf';
+import { KPW_CONFIG } from './iso4217/kpw';
+import { KYD_CONFIG } from './iso4217/kyd';
+import { KZT_CONFIG } from './iso4217/kzt';
+import { LAK_CONFIG } from './iso4217/lak';
+import { LBP_CONFIG } from './iso4217/lbp';
+import { LKR_CONFIG } from './iso4217/lkr';
+import { LRD_CONFIG } from './iso4217/lrd';
+import { LSL_CONFIG } from './iso4217/lsl';
+import { LYD_CONFIG } from './iso4217/lyd';
+import { MAD_CONFIG } from './iso4217/mad';
+import { MDL_CONFIG } from './iso4217/mdl';
+import { MGA_CONFIG } from './iso4217/mga';
+import { MKD_CONFIG } from './iso4217/mkd';
+import { MMK_CONFIG } from './iso4217/mmk';
+import { MNT_CONFIG } from './iso4217/mnt';
+import { MOP_CONFIG } from './iso4217/mop';
+import { MRU_CONFIG } from './iso4217/mru';
+import { MUR_CONFIG } from './iso4217/mur';
+import { MVR_CONFIG } from './iso4217/mvr';
+import { MWK_CONFIG } from './iso4217/mwk';
+import { MXV_CONFIG } from './iso4217/mxv';
+import { MZN_CONFIG } from './iso4217/mzn';
+import { NAD_CONFIG } from './iso4217/nad';
+import { NGN_CONFIG } from './iso4217/ngn';
+import { NIO_CONFIG } from './iso4217/nio';
+import { NPR_CONFIG } from './iso4217/npr';
+import { PAB_CONFIG } from './iso4217/pab';
+import { PEN_CONFIG } from './iso4217/pen';
+import { PGK_CONFIG } from './iso4217/pgk';
+import { PKR_CONFIG } from './iso4217/pkr';
+import { PYG_CONFIG } from './iso4217/pyg';
+import { QAR_CONFIG } from './iso4217/qar';
+import { RON_CONFIG } from './iso4217/ron';
+import { RSD_CONFIG } from './iso4217/rsd';
+import { RWF_CONFIG } from './iso4217/rwf';
+import { SBD_CONFIG } from './iso4217/sbd';
+import { SCR_CONFIG } from './iso4217/scr';
+import { SDG_CONFIG } from './iso4217/sdg';
+import { SHP_CONFIG } from './iso4217/shp';
+import { SLL_CONFIG } from './iso4217/sll';
+import { SOS_CONFIG } from './iso4217/sos';
+import { SRD_CONFIG } from './iso4217/srd';
+import { SSP_CONFIG } from './iso4217/ssp';
+import { STN_CONFIG } from './iso4217/stn';
+import { SVC_CONFIG } from './iso4217/svc';
+import { SYP_CONFIG } from './iso4217/syp';
+import { SZL_CONFIG } from './iso4217/szl';
+import { TJS_CONFIG } from './iso4217/tjs';
+import { TMT_CONFIG } from './iso4217/tmt';
+import { TND_CONFIG } from './iso4217/tnd';
+import { TOP_CONFIG } from './iso4217/top';
+import { TTD_CONFIG } from './iso4217/ttd';
+import { TWD_CONFIG } from './iso4217/twd';
+import { TZS_CONFIG } from './iso4217/tzs';
+import { UAH_CONFIG } from './iso4217/uah';
+import { UGX_CONFIG } from './iso4217/ugx';
+import { USN_CONFIG } from './iso4217/usn';
+import { UYI_CONFIG } from './iso4217/uyi';
+import { UYU_CONFIG } from './iso4217/uyu';
+import { UYW_CONFIG } from './iso4217/uyw';
+import { UZS_CONFIG } from './iso4217/uzs';
+import { VES_CONFIG } from './iso4217/ves';
+import { VUV_CONFIG } from './iso4217/vuv';
+import { WST_CONFIG } from './iso4217/wst';
+import { XAF_CONFIG } from './iso4217/xaf';
+import { XCD_CONFIG } from './iso4217/xcd';
+import { XOF_CONFIG } from './iso4217/xof';
+import { XPF_CONFIG } from './iso4217/xpf';
+import { YER_CONFIG } from './iso4217/yer';
+import { ZMW_CONFIG } from './iso4217/zmw';
+import { ZWL_CONFIG } from './iso4217/zwl';
+
+/**
+ * All ISO 4217 currency configurations.
+ * This array is used to auto-register currencies when this module is imported.
+ */
+export const ISO4217_CURRENCIES = [
+  // Major World Currencies
+  USD_CONFIG, EUR_CONFIG, GBP_CONFIG, JPY_CONFIG, CHF_CONFIG, CAD_CONFIG, AUD_CONFIG, NZD_CONFIG, CNY_CONFIG,
+  // Asian Currencies
+  HKD_CONFIG, SGD_CONFIG, KRW_CONFIG, INR_CONFIG, THB_CONFIG, MYR_CONFIG, PHP_CONFIG, IDR_CONFIG, VND_CONFIG,
+  // European Currencies
+  SEK_CONFIG, NOK_CONFIG, DKK_CONFIG, PLN_CONFIG, CZK_CONFIG, HUF_CONFIG, TRY_CONFIG, RUB_CONFIG,
+  // Middle Eastern Currencies
+  AED_CONFIG, SAR_CONFIG, KWD_CONFIG, BHD_CONFIG, OMR_CONFIG, JOD_CONFIG, ILS_CONFIG, EGP_CONFIG,
+  // Other Currencies
+  BRL_CONFIG, ZAR_CONFIG, MXN_CONFIG, AFN_CONFIG, ALL_CONFIG, AMD_CONFIG, ANG_CONFIG, AOA_CONFIG,
+  ARS_CONFIG, AWG_CONFIG, AZN_CONFIG, BAM_CONFIG, BBD_CONFIG, BDT_CONFIG, BGN_CONFIG, BIF_CONFIG,
+  BMD_CONFIG, BND_CONFIG, BOB_CONFIG, BOV_CONFIG, BSD_CONFIG, BTN_CONFIG, BWP_CONFIG, BYN_CONFIG,
+  BZD_CONFIG, CDF_CONFIG, CHE_CONFIG, CHW_CONFIG, CLF_CONFIG, CLP_CONFIG, COP_CONFIG, COU_CONFIG,
+  CRC_CONFIG, CUC_CONFIG, CUP_CONFIG, CVE_CONFIG, DJF_CONFIG, DOP_CONFIG, DZD_CONFIG, ERN_CONFIG,
+  ETB_CONFIG, FJD_CONFIG, FKP_CONFIG, GEL_CONFIG, GHS_CONFIG, GIP_CONFIG, GMD_CONFIG, GNF_CONFIG,
+  GTQ_CONFIG, GYD_CONFIG, HNL_CONFIG, HRK_CONFIG, HTG_CONFIG, IQD_CONFIG, IRR_CONFIG, ISK_CONFIG,
+  JMD_CONFIG, KES_CONFIG, KGS_CONFIG, KHR_CONFIG, KMF_CONFIG, KPW_CONFIG, KYD_CONFIG, KZT_CONFIG,
+  LAK_CONFIG, LBP_CONFIG, LKR_CONFIG, LRD_CONFIG, LSL_CONFIG, LYD_CONFIG, MAD_CONFIG, MDL_CONFIG,
+  MGA_CONFIG, MKD_CONFIG, MMK_CONFIG, MNT_CONFIG, MOP_CONFIG, MRU_CONFIG, MUR_CONFIG, MVR_CONFIG,
+  MWK_CONFIG, MXV_CONFIG, MZN_CONFIG, NAD_CONFIG, NGN_CONFIG, NIO_CONFIG, NPR_CONFIG, PAB_CONFIG,
+  PEN_CONFIG, PGK_CONFIG, PKR_CONFIG, PYG_CONFIG, QAR_CONFIG, RON_CONFIG, RSD_CONFIG, RWF_CONFIG,
+  SBD_CONFIG, SCR_CONFIG, SDG_CONFIG, SHP_CONFIG, SLL_CONFIG, SOS_CONFIG, SRD_CONFIG, SSP_CONFIG,
+  STN_CONFIG, SVC_CONFIG, SYP_CONFIG, SZL_CONFIG, TJS_CONFIG, TMT_CONFIG, TND_CONFIG, TOP_CONFIG,
+  TTD_CONFIG, TWD_CONFIG, TZS_CONFIG, UAH_CONFIG, UGX_CONFIG, USN_CONFIG, UYI_CONFIG, UYU_CONFIG,
+  UYW_CONFIG, UZS_CONFIG, VES_CONFIG, VUV_CONFIG, WST_CONFIG, XAF_CONFIG, XCD_CONFIG, XOF_CONFIG,
+  XPF_CONFIG, YER_CONFIG, ZMW_CONFIG, ZWL_CONFIG,
+];
+
+// Auto-register all ISO 4217 currencies in the global registry
+currencyRegistry.registerAll(ISO4217_CURRENCIES);
 
 // Major World Currencies
 export { USD, USD_CONFIG, USD_CODE, createUSD } from './iso4217/usd';
@@ -345,4 +560,7 @@ export type { ZWLCode } from './iso4217/zwl';
 
 // Re-export core currency types for convenience
 export type { Currency, CurrencyConfig, CurrencyCode, CurrencyFormatOptions } from '../core/currency';
-export { createCurrency, getCurrencyConfig, RoundingMode } from '../core/currency'; 
+export { createCurrency, getCurrencyConfig, RoundingMode } from '../core/currency';
+
+// Re-export registry for convenience
+export { CurrencyRegistry, currencyRegistry, createCurrencyRegistry } from '../core/registry'; 
