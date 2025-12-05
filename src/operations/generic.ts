@@ -84,15 +84,53 @@ export function createArithmeticOperations<T>(calculator: Calculator<T>) {
   /**
    * Multiply a Genkin instance by a factor
    */
-  function multiply(genkin: GenkinInstance<T>, multiplier: T): GenkinInstance<T> {
-    const resultUnits = calculator.multiply(genkin.minorUnits, multiplier);
+  function multiply(genkin: GenkinInstance<T>, multiplier: T | GenericScaledRatio<T>): GenkinInstance<T> {
+    if (typeof multiplier === 'object' && multiplier !== null && 'amount' in multiplier) {
+      // Scaled multiplier: { amount, scale }
+      const scaledMultiplier = multiplier as GenericScaledRatio<T>;
+      const multiplierAmount = scaledMultiplier.amount;
 
-    return new GenericGenkin(resultUnits, calculator, {
-      currency: genkin.currency,
-      precision: genkin.precision,
-      rounding: genkin.rounding,
-      isMinorUnits: true,
-    });
+      // Convert scale to number for precision calculation
+      let scaleNum = 0;
+      if ('scale' in scaledMultiplier && scaledMultiplier.scale !== undefined) {
+        if (typeof scaledMultiplier.scale === 'bigint') {
+          scaleNum = Number(scaledMultiplier.scale);
+        } else if (typeof scaledMultiplier.scale === 'number') {
+          scaleNum = scaledMultiplier.scale;
+        } else if (scaledMultiplier.scale && typeof scaledMultiplier.scale === 'object') {
+          // Handle Big.js or other big number libraries
+          if ('toNumber' in scaledMultiplier.scale) {
+            scaleNum = (scaledMultiplier.scale as any).toNumber();
+          } else {
+            // Fallback: try to convert to number
+            scaleNum = Number(scaledMultiplier.scale);
+          }
+        }
+      }
+
+      // Calculate new precision: genkin precision + multiplier scale
+      const resultPrecision = Math.max(0, genkin.precision + scaleNum);
+
+      // Multiply minor units directly
+      const resultUnits = calculator.multiply(genkin.minorUnits, multiplierAmount);
+
+      return new GenericGenkin(resultUnits, calculator, {
+        currency: genkin.currency,
+        precision: resultPrecision,
+        rounding: genkin.rounding,
+        isMinorUnits: true,
+      });
+    } else {
+      // Simple multiplier
+      const resultUnits = calculator.multiply(genkin.minorUnits, multiplier as T);
+
+      return new GenericGenkin(resultUnits, calculator, {
+        currency: genkin.currency,
+        precision: genkin.precision,
+        rounding: genkin.rounding,
+        isMinorUnits: true,
+      });
+    }
   }
 
   /**
@@ -258,9 +296,7 @@ export function createComparisonOperations<T>(calculator: Calculator<T>) {
    * Compare two Genkin instances
    */
   function compare(a: GenkinInstance<T>, b: GenkinInstance<T>): ComparisonOperator {
-    if (!a.hasSameCurrency(b)) {
-      throw new Error(`Cannot compare different currencies: ${a.currencyCode} and ${b.currencyCode}`);
-    }
+    assert(a.hasSameCurrency(b), 'Objects must have the same currency.');
 
     const { aUnits, bUnits } = normalizeToSamePrecision(a, b);
     return calculator.compare(aUnits, bUnits);

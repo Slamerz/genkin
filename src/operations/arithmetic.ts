@@ -20,9 +20,9 @@ export type AllocationRatio = number | ScaledRatio;
  * Both instances must have the same currency
  */
 export function add(a: Genkin, b: Genkin): Genkin {
-  assert(a.hasSameCurrency(b), 'Objects must have the same currency.');
-
-
+  if(!a.hasSameCurrency(b)) {
+    throw new Error(`Cannot add different currencies: ${a.currencyCode} and ${b.currencyCode}`);
+  }
   // Use the higher precision for the result
   const maxPrecision = Math.max(a.precision, b.precision);
 
@@ -179,21 +179,17 @@ export function allocate(genkin: Genkin, ratios: AllocationRatio[]): Genkin[] {
     }
   }
 
-  // Distribute the remaining units
-  const unallocatedUnits = totalMinorUnits - allocatedSum;
+  // Distribute the remaining units (from first to last, matching original dinero.js behavior)
+  let unallocatedUnits = totalMinorUnits - allocatedSum;
+  let index = 0;
   
-  if (unallocatedUnits > 0) {
-    // Create array of indices with their remainders, excluding zero ratios
-    const indexedRemainders = remainders
-      .map((remainder, index) => ({ index, remainder }))
-      .filter(item => normalizedRatios[item.index] !== 0)
-      .sort((a, b) => b.remainder - a.remainder); // Sort by remainder descending
-
-    // Distribute remaining units to indices with largest remainders
-    for (let i = 0; i < unallocatedUnits && i < indexedRemainders.length; i++) {
-      const targetIndex = indexedRemainders[i].index;
-      allocations[targetIndex] += 1;
+  while (unallocatedUnits > 0 && index < allocations.length) {
+    // Only give remainder to non-zero ratios
+    if (normalizedRatios[index] !== 0) {
+      allocations[index] += 1;
+      unallocatedUnits -= 1;
     }
+    index++;
   }
 
   // Convert back to Genkin instances

@@ -263,6 +263,7 @@ function isGenericDineroWrapper(obj: any): boolean {
  * Supports both number-based DineroWrapper and generic GenericDineroWrapper
  */
 export function add<T>(augend: Dinero<T>, addend: Dinero<T>): Dinero<T> {
+  assert(augend.currency.code === addend.currency.code, 'Objects must have the same currency.');
   // Handle number-based DineroWrapper
   if (isDineroWrapper(augend) && isDineroWrapper(addend)) {
     const result = genkinAdd(augend._genkin, addend._genkin);
@@ -287,6 +288,7 @@ export function add<T>(augend: Dinero<T>, addend: Dinero<T>): Dinero<T> {
  * Subtract two Dinero objects
  */
 export function subtract<T>(minuend: Dinero<T>, subtrahend: Dinero<T>): Dinero<T> {
+  assert(minuend.currency.code === subtrahend.currency.code, 'Objects must have the same currency.');
   if (isDineroWrapper(minuend) && isDineroWrapper(subtrahend)) {
     const result = genkinSubtract(minuend._genkin, subtrahend._genkin);
     return new DineroWrapper(result) as unknown as Dinero<T>;
@@ -307,10 +309,32 @@ export function subtract<T>(minuend: Dinero<T>, subtrahend: Dinero<T>): Dinero<T
 /**
  * Multiply a Dinero object by a multiplier
  */
-export function multiply<T>(multiplicand: Dinero<T>, multiplier: T): Dinero<T> {
+export function multiply<T>(multiplicand: Dinero<T>, multiplier: ScaledAmount<T> | T): Dinero<T> {
   if (isDineroWrapper(multiplicand)) {
-    const result = genkinMultiply(multiplicand._genkin, multiplier as number);
-    return new DineroWrapper(result) as unknown as Dinero<T>;
+    // For number-based wrapper, handle scaled multiplier
+    if (typeof multiplier === 'object' && multiplier !== null && 'amount' in multiplier) {
+      const scaled = multiplier as ScaledAmount<number>;
+      const multiplierAmount = scaled.amount as number;
+      const multiplierScale = scaled.scale ?? 0;
+
+      // Calculate new precision: multiplicand precision + multiplier scale
+      const newPrecision = multiplicand._genkin.precision + multiplierScale;
+
+      // Multiply minor units directly, then adjust precision
+      const resultMinorUnits = multiplicand._genkin.minorUnits * multiplierAmount;
+
+      const result = new Genkin(resultMinorUnits / Math.pow(10, newPrecision), {
+        currency: multiplicand._genkin.currency,
+        precision: newPrecision,
+        rounding: multiplicand._genkin.rounding,
+      });
+
+      return new DineroWrapper(result) as unknown as Dinero<T>;
+    } else {
+      // Simple multiplier
+      const result = genkinMultiply(multiplicand._genkin, multiplier as number);
+      return new DineroWrapper(result) as unknown as Dinero<T>;
+    }
   }
 
   if (isGenericDineroWrapper(multiplicand)) {
@@ -325,11 +349,88 @@ export function multiply<T>(multiplicand: Dinero<T>, multiplier: T): Dinero<T> {
 }
 
 /**
+ * Helper to extract amount and scale from a ratio (either T or { amount: T; scale: T })
+ */
+function getAmountAndScale<T>(
+  ratio: T | { amount: T; scale: T },
+  zero: T
+): { amount: T; scale: T } {
+  if (typeof ratio === 'object' && ratio !== null && 'amount' in ratio) {
+    const scaled = ratio as { amount: T; scale: T };
+    return { amount: scaled.amount, scale: scaled.scale ?? zero };
+  }
+  return { amount: ratio as T, scale: zero };
+}
+
+/**
+ * Convert a scale value to a number (handles number, bigint, Big.js, etc.)
+ */
+function scaleToNumber<T>(scale: T): number {
+  if (typeof scale === 'number') return scale;
+  if (typeof scale === 'bigint') return Number(scale);
+  if (typeof scale === 'object' && scale !== null && 'toNumber' in scale) {
+    return (scale as any).toNumber();
+  }
+  return Number(scale);
+}
+
+/**
  * Allocate a Dinero amount across ratios
  */
-export function allocate<T>(dineroObject: Dinero<T>, ratios: (T | { amount: T; scale: number })[]): Dinero<T>[] {
+export function allocate<T>(dineroObject: Dinero<T>, ratios: (T | { amount: T; scale: T })[]): Dinero<T>[] {
+  const hasRatios = ratios.length > 0;
+  
   if (isDineroWrapper(dineroObject)) {
-    const results = genkinAllocate(dineroObject._genkin, ratios as AllocationRatio[]);
+    // Number-based wrapper
+    const zero = 0;
+    const ten = 10;
+    // Get the currency's base (default to 10 for decimal currencies)
+    const currencyBase = dineroObject._genkin.currency.base ?? 10;
+    
+    // Get amount and scale for each ratio
+    const scaledRatios = ratios.map((ratio) => 
+      getAmountAndScale(ratio as number | { amount: number; scale: number }, zero)
+    );
+    
+    // Find highest ratio scale
+    const highestRatioScale = hasRatios
+      ? Math.max(...scaledRatios.map(({ scale }) => scale as number))
+      : zero;
+    
+    // Normalize all ratios to the same scale (using base 10 for ratios)
+    const normalizedRatios = scaledRatios.map(({ amount, scale }) => {
+      const factor = scale === highestRatioScale
+        ? zero
+        : highestRatioScale - (scale as number);
+      
+      return {
+        amount: (amount as number) * Math.pow(ten, factor),
+        scale,
+      };
+    });
+    
+    // Validate using the normalized ratios
+    const hasOnlyPositiveRatios = normalizedRatios.every(({ amount }) => amount >= 0);
+    const hasOneNonZeroRatio = normalizedRatios.some(({ amount }) => amount > 0);
+    const condition = hasRatios && hasOnlyPositiveRatios && hasOneNonZeroRatio;
+    assert(condition, 'Ratios are invalid.');
+    
+    // Get current scale and calculate new scale
+    const { scale: currentScale } = dineroObject.toJSON() as DineroSnapshot<number>;
+    const newScale = currentScale + highestRatioScale;
+    
+    // Convert dinero to new scale before allocation (using currency's base)
+    const scaleFactor = Math.pow(currencyBase, highestRatioScale);
+    const newAmount = dineroObject._genkin.minorUnits * scaleFactor;
+    
+    const scaledGenkin = genkin(newAmount, {
+      currency: dineroObject._genkin.currency,
+      precision: newScale,
+      isMinorUnits: true,
+    });
+    
+    // Allocate using the normalized ratios (just the amounts)
+    const results = genkinAllocate(scaledGenkin, normalizedRatios.map(r => r.amount) as AllocationRatio[]);
     return results.map(result => new DineroWrapper(result)) as unknown as Dinero<T>[];
   }
 
@@ -338,7 +439,78 @@ export function allocate<T>(dineroObject: Dinero<T>, ratios: (T | { amount: T; s
     const calculator = dineroWrapper._genkin.calculator;
     const exponent = dineroWrapper._originalExponent;
     const ops = createArithmeticOperations(calculator);
-    const results = ops.allocate(dineroWrapper._genkin, ratios as GenericAllocationRatio<T>[]);
+    
+    // Get zero and ten for this calculator
+    const zero = calculator.zero();
+    let ten = calculator.zero();
+    for (let i = 0; i < 10; i++) {
+      ten = calculator.increment(ten);
+    }
+    
+    // Get the currency's base (default to 10 for decimal currencies)
+    const currencyBaseNum = dineroWrapper._genkin.currency.base ?? 10;
+    let currencyBase = calculator.zero();
+    for (let i = 0; i < currencyBaseNum; i++) {
+      currencyBase = calculator.increment(currencyBase);
+    }
+    
+    // Get amount and scale for each ratio
+    const scaledRatios = ratios.map((ratio) => getAmountAndScale(ratio, zero));
+    
+    // Find highest ratio scale (need to convert to numbers for comparison)
+    const scaleNumbers = scaledRatios.map(({ scale }) => scaleToNumber(scale));
+    const highestRatioScaleNum = hasRatios ? Math.max(...scaleNumbers) : 0;
+    
+    // Convert highest scale back to type T
+    let highestRatioScale = calculator.zero();
+    for (let i = 0; i < highestRatioScaleNum; i++) {
+      highestRatioScale = calculator.increment(highestRatioScale);
+    }
+    
+    // Normalize all ratios to the same scale (using base 10 for ratios)
+    const normalizedRatios = scaledRatios.map(({ amount, scale }) => {
+      const scaleNum = scaleToNumber(scale);
+      const factorNum = highestRatioScaleNum - scaleNum;
+      
+      let factor = calculator.zero();
+      for (let i = 0; i < factorNum; i++) {
+        factor = calculator.increment(factor);
+      }
+      
+      const multiplier = calculator.power(ten, factor);
+      return {
+        amount: calculator.multiply(amount, multiplier),
+        scale,
+      };
+    });
+    
+    // Validate using the calculator's comparison functions
+    const hasOnlyPositiveRatios = normalizedRatios.every(({ amount }) => 
+      calculator.compare(amount, zero) >= 0
+    );
+    const hasOneNonZeroRatio = normalizedRatios.some(({ amount }) => 
+      calculator.compare(amount, zero) > 0
+    );
+    const condition = hasRatios && hasOnlyPositiveRatios && hasOneNonZeroRatio;
+    assert(condition, 'Ratios are invalid.');
+    
+    // Get current scale and calculate new scale
+    const currentScaleNum = dineroWrapper._genkin.precision;
+    const newScaleNum = currentScaleNum + highestRatioScaleNum;
+    
+    // Convert dinero to new scale before allocation (using currency's base)
+    const scaleMultiplier = calculator.power(currencyBase, highestRatioScale);
+    const newAmount = calculator.multiply(dineroWrapper._genkin.minorUnits, scaleMultiplier);
+    
+    const scaledGenkin = new GenericGenkin(newAmount, calculator, {
+      currency: dineroWrapper._genkin.currency,
+      precision: newScaleNum,
+      rounding: dineroWrapper._genkin.rounding,
+      isMinorUnits: true,
+    });
+    
+    // Allocate using the normalized ratios (just the amounts)
+    const results = ops.allocate(scaledGenkin, normalizedRatios.map(r => r.amount));
     return results.map(result => new GenericDineroWrapper(result, calculator, exponent)) as Dinero<T>[];
   }
 
