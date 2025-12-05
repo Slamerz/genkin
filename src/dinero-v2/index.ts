@@ -341,7 +341,20 @@ export function multiply<T>(multiplicand: Dinero<T>, multiplier: ScaledAmount<T>
     const multiplicandWrapper = multiplicand as GenericDineroWrapper<T>;
     const calculator = multiplicandWrapper._genkin.calculator;
     const ops = createArithmeticOperations(calculator);
-    const result = ops.multiply(multiplicandWrapper._genkin, multiplier);
+    
+    // Convert ScaledAmount<T> to GenericScaledRatio<T> if needed
+    let convertedMultiplier: T | { amount: T; scale: number };
+    if (typeof multiplier === 'object' && multiplier !== null && 'amount' in multiplier) {
+      const scaled = multiplier as ScaledAmount<T>;
+      convertedMultiplier = {
+        amount: scaled.amount,
+        scale: scaled.scale !== undefined ? scaleToNumber(scaled.scale) : 0,
+      };
+    } else {
+      convertedMultiplier = multiplier as T;
+    }
+    
+    const result = ops.multiply(multiplicandWrapper._genkin, convertedMultiplier);
     return new GenericDineroWrapper(result, calculator, multiplicandWrapper._originalExponent) as Dinero<T>;
   }
 
