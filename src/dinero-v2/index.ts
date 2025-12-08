@@ -887,7 +887,7 @@ export function transformScale<T>(
       // For non-decimal currencies with array base, use the first element
       base = dineroCurrency.base[0];
     } else {
-      base = dineroCurrency.base;
+      base = dineroCurrency.base as T;
     }
     let newAmount: T;
 
@@ -921,6 +921,128 @@ export function transformScale<T>(
     });
 
     return new GenericDineroWrapper(newGenkin, calculator, wrapper._originalExponent) as Dinero<T>;
+  }
+
+  throw new Error('Invalid Dinero object');
+}
+
+/**
+ * Trim a Dinero object's scale by removing trailing zeros from the amount
+ * The scale will never go below the currency's exponent
+ * 
+ * @param dineroObject - The Dinero object to trim
+ * @returns A new Dinero object with trimmed scale, or the original if no trimming needed
+ * 
+ * @example
+ * ```typescript
+ * // USD has exponent 2
+ * const d = dinero({ amount: 500000, currency: USD, scale: 5 });
+ * const trimmed = trimScale(d);
+ * // Result: { amount: 500, scale: 2 }
+ * 
+ * const d2 = dinero({ amount: 55550, currency: USD, scale: 4 });
+ * const trimmed2 = trimScale(d2);
+ * // Result: { amount: 5555, scale: 3 } (can't go lower without losing precision)
+ * ```
+ */
+export function trimScale<T>(dineroObject: Dinero<T>): Dinero<T> {
+  // Handle number-based DineroWrapper
+  if (isDineroWrapper(dineroObject)) {
+    const wrapper = dineroObject as unknown as DineroWrapper;
+    const amount = wrapper._genkin.minorUnits;
+    const currentScale = wrapper.scale;
+    const currencyExponent = wrapper.currency.exponent;
+    
+    // Get the currency's base (default to 10 for decimal currencies)
+    const base = wrapper._genkin.currency.base ?? 10;
+    
+    // Handle zero amount - return with currency exponent as scale
+    if (amount === 0) {
+      if (currentScale === currencyExponent) {
+        return dineroObject;
+      }
+      return transformScale(dineroObject as unknown as Dinero<number>, currencyExponent) as unknown as Dinero<T>;
+    }
+    
+    // Count trailing zeros
+    let trailingZeros = 0;
+    let tempAmount = Math.abs(amount);
+    while (tempAmount % base === 0 && trailingZeros < currentScale) {
+      tempAmount = tempAmount / base;
+      trailingZeros++;
+    }
+    
+    // Calculate new scale (never go below currency exponent)
+    const newScale = Math.max(currentScale - trailingZeros, currencyExponent);
+    
+    // If no change needed, return original
+    if (newScale === currentScale) {
+      return dineroObject;
+    }
+    
+    return transformScale(dineroObject as unknown as Dinero<number>, newScale) as unknown as Dinero<T>;
+  }
+
+  // Handle generic GenericDineroWrapper
+  if (isGenericDineroWrapper(dineroObject)) {
+    const wrapper = dineroObject as GenericDineroWrapper<T>;
+    const calculator = wrapper._genkin.calculator;
+    const amount = wrapper._genkin.minorUnits;
+    const currentScale = wrapper._genkin.precision;
+    const currencyExponent = scaleToNumber(wrapper._originalExponent);
+    
+    // Get the currency's base (default to 10 for decimal currencies)
+    const baseNum = wrapper._genkin.currency.base ?? 10;
+    
+    // Helper to convert a number to the calculator's type
+    function intFromNumber(n: number): T {
+      let result = calculator.zero();
+      for (let i = 0; i < Math.abs(n); i++) {
+        result = calculator.increment(result);
+      }
+      if (n < 0) {
+        result = calculator.subtract(calculator.zero(), result);
+      }
+      return result;
+    }
+    
+    const zero = calculator.zero();
+    const base = intFromNumber(baseNum);
+    
+    // Handle zero amount - return with currency exponent as scale
+    if (calculator.compare(amount, zero) === 0) {
+      if (currentScale === currencyExponent) {
+        return dineroObject;
+      }
+      return transformScale(dineroObject, intFromNumber(currencyExponent));
+    }
+    
+    // Count trailing zeros
+    let trailingZeros = 0;
+    let tempAmount = amount;
+    // Make positive for counting
+    if (calculator.compare(tempAmount, zero) < 0) {
+      tempAmount = calculator.subtract(zero, tempAmount);
+    }
+    
+    while (trailingZeros < currentScale) {
+      const remainder = calculator.modulo(tempAmount, base);
+      if (calculator.compare(remainder, zero) !== 0) {
+        break;
+      }
+      tempAmount = calculator.integerDivide(tempAmount, base);
+      trailingZeros++;
+    }
+    
+    // Calculate new scale (never go below currency exponent)
+    const newScale = Math.max(currentScale - trailingZeros, currencyExponent);
+    
+    // If no change needed, return original
+    if (newScale === currentScale) {
+      return dineroObject;
+    }
+    
+    return transformScale(dineroObject, intFromNumber(newScale));
   }
 
   throw new Error('Invalid Dinero object');
