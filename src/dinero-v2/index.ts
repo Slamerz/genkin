@@ -3,16 +3,17 @@
 // Supports generic numeric types (number, bigint, custom types)
 
 import { Genkin, genkin } from '../core/genkin.js';
-import { Currency as GenkinCurrency, getCurrencyConfig, createCurrency } from '../core/currency.js';
+import { Currency as GenkinCurrency, CurrencyConfig, getCurrencyConfig, createCurrency } from '../core/currency.js';
 import { createGenkin, GenericGenkin } from '../core/factory.js';
 import { createArithmeticOperations, createComparisonOperations } from '../operations/generic.js';
-import { add as genkinAdd, subtract as genkinSubtract, multiply as genkinMultiply, divide as genkinDivide, allocate as genkinAllocate } from '../operations/arithmetic.js';
+import { add as genkinAdd, subtract as genkinSubtract, multiply as genkinMultiply, divide as genkinDivide, allocate as genkinAllocate, convert as genkinConvert, normalizeScale as genkinNormalizeScale, transformScale as genkinTransformScale } from '../operations/arithmetic.js';
 import { equals as genkinEquals, lessThan as genkinLessThan, greaterThan as genkinGreaterThan, isZero as genkinIsZero, isPositive as genkinIsPositive, isNegative as genkinIsNegative, min as genkinMin, max as genkinMax } from '../operations/comparison.js';
 import type { ScaledRatio, AllocationRatio } from '../operations/arithmetic.js';
 import type { GenkinInstance, GenericAllocationRatio } from '../core/types.js';
 import type { Calculator as GenkinCalculator } from '../core/calculator.js';
 import type { Currency } from './currencies.js';
-import { Calculator, Dinero, DineroOptions, DineroSnapshot, DineroFactory, CreateDineroOptions, ScaledAmount, Rates, ComparisonOperator } from './types.js';
+import { Calculator, Dinero, DineroOptions, DineroSnapshot, DineroFactory, CreateDineroOptions, ScaledAmount, Rates, ComparisonOperator, DivideOperation } from './types.js';
+import { down, up, halfUp, halfDown, halfEven, halfOdd, halfAwayFromZero, halfTowardsZero } from './divide/index.js';
 
 /**
  * Assert function for validation
@@ -35,9 +36,37 @@ function toDineroCurrency<T>(currency: GenkinCurrency, scale: T, originalExponen
 }
 
 function toGenkinCurrency(currency: Currency<number>): GenkinCurrency {
-  // Get the full currency config using the code
+  // Use the provided currency properties, but get additional details from registry if needed
   const config = getCurrencyConfig(currency.code);
-  return createCurrency(config);
+
+  // Extract base as a number (handle case where it might be an array or any numeric type)
+  let base: number | undefined;
+  if (Array.isArray(currency.base)) {
+    // For array base, convert the first element to number
+    base = Number(currency.base[0]);
+  } else if (currency.base !== undefined) {
+    // Convert any numeric type (number, bigint, Big.js) to number
+    base = Number(currency.base);
+  } else {
+    base = config.base;
+  }
+
+  // Extract exponent as a number (handle any numeric type)
+  let precision: number;
+  if (currency.exponent !== undefined) {
+    precision = Number(currency.exponent);
+  } else {
+    precision = config.precision;
+  }
+
+  // Merge the provided currency properties with registry config
+  const mergedConfig: CurrencyConfig = {
+    ...config,
+    code: currency.code,
+    base,
+    precision,
+  };
+  return createCurrency(mergedConfig);
 }
 
 /**
@@ -645,7 +674,259 @@ export function isNegative<T>(dineroObject: Dinero<T>): boolean {
   throw new Error('Invalid Dinero object');
 }
 
-// Export rounding functions for compatibility
+/**
+ * Convert a Dinero object to a different currency
+ * 
+ * @param dineroObject - The source Dinero object
+ * @param newCurrency - The target currency
+ * @param rates - Object containing exchange rates, keyed by currency code
+ * @returns A new Dinero object in the target currency
+ * 
+ * @example
+ * ```typescript
+ * const d = dinero({ amount: 500, currency: USD });
+ * 
+ * // With scaled rate
+ * const converted = convert(d, EUR, { EUR: { amount: 89, scale: 2 } });
+ * // Result: { amount: 44500, currency: EUR, scale: 4 }
+ * 
+ * // With simple rate
+ * const converted = convert(d, IQD, { IQD: 1199 });
+ * // Result: { amount: 5995000, currency: IQD, scale: 3 }
+ * ```
+ */
+export function convert<T>(
+  dineroObject: Dinero<T>,
+  newCurrency: Currency<T>,
+  rates: Rates<T>
+): Dinero<T> {
+  const rate = rates[newCurrency.code];
+  
+  if (rate === undefined) {
+    throw new Error(`[Dinero.js] No rate provided for currency ${newCurrency.code}`);
+  }
+
+  if (isDineroWrapper(dineroObject)) {
+    // Number-based wrapper
+    const numericRate = rate as number | { amount: number; scale: number };
+    const targetCurrencyConfig = {
+      code: newCurrency.code,
+      base: typeof newCurrency.base === 'number' ? newCurrency.base : 10,
+      precision: typeof newCurrency.exponent === 'number' ? newCurrency.exponent : 2,
+    };
+    
+    const result = genkinConvert(dineroObject._genkin, targetCurrencyConfig, numericRate);
+    return new DineroWrapper(result) as unknown as Dinero<T>;
+  }
+
+  if (isGenericDineroWrapper(dineroObject)) {
+    const dineroWrapper = dineroObject as GenericDineroWrapper<T>;
+    const calculator = dineroWrapper._genkin.calculator;
+    const ops = createArithmeticOperations(calculator);
+    
+    // Extract rate amount and scale
+    let rateAmount: T;
+    let rateScale: number | undefined;
+    
+    if (typeof rate === 'object' && rate !== null && 'amount' in rate) {
+      const scaledRate = rate as { amount: T; scale: T };
+      rateAmount = scaledRate.amount;
+      rateScale = scaleToNumber(scaledRate.scale);
+    } else {
+      rateAmount = rate as T;
+      rateScale = undefined;
+    }
+    
+    const targetCurrencyConfig = {
+      code: newCurrency.code,
+      base: typeof newCurrency.base === 'number' 
+        ? newCurrency.base 
+        : (Array.isArray(newCurrency.base) ? 10 : Number(newCurrency.base)),
+      precision: typeof newCurrency.exponent === 'number' 
+        ? newCurrency.exponent 
+        : Number(newCurrency.exponent),
+    };
+    
+    const convertRate = rateScale !== undefined 
+      ? { amount: rateAmount, scale: rateScale }
+      : rateAmount;
+    
+    const result = ops.convert(dineroWrapper._genkin, targetCurrencyConfig, convertRate);
+    return new GenericDineroWrapper(result, calculator, newCurrency.exponent) as Dinero<T>;
+  }
+
+  throw new Error('Invalid Dinero object');
+}
+
+/**
+ * Normalize the scale of an array of Dinero objects to the highest scale
+ * All objects must have the same currency
+ */
+export function normalizeScale<T>(dineroObjects: Dinero<T>[]): Dinero<T>[] {
+  assert(dineroObjects.length > 0, 'Cannot normalize scale of empty array');
+
+  // Check that all objects have the same currency
+  const firstCurrency = dineroObjects[0].currency.code;
+  for (const dineroObject of dineroObjects) {
+    assert(dineroObject.currency.code === firstCurrency, 'Objects must have the same currency.');
+  }
+
+  // Handle number-based DineroWrapper
+  if (isDineroWrapper(dineroObjects[0])) {
+    const genkins = dineroObjects.map(d => (d as unknown as DineroWrapper)._genkin);
+    const normalizedGenkins = genkinNormalizeScale(genkins);
+    return normalizedGenkins.map(genkin => new DineroWrapper(genkin) as unknown as Dinero<T>);
+  }
+
+  // Handle generic GenericDineroWrapper
+  if (isGenericDineroWrapper(dineroObjects[0])) {
+    const wrappers = dineroObjects.map(d => d as GenericDineroWrapper<T>);
+    const calculator = wrappers[0]._genkin.calculator;
+    const ops = createArithmeticOperations(calculator);
+    const genkins = wrappers.map(w => w._genkin);
+    const normalizedGenkins = ops.normalizeScale(genkins);
+    const originalExponent = wrappers[0]._originalExponent;
+    return normalizedGenkins.map(genkin => new GenericDineroWrapper(genkin, calculator, originalExponent)) as Dinero<T>[];
+  }
+
+  throw new Error('Invalid Dinero objects');
+}
+
+/**
+ * Transform a Dinero object to a different scale
+ */
+export function transformScale<T>(
+  dineroObject: Dinero<T>,
+  newScale: T,
+  divide?: DivideOperation
+): Dinero<T> {
+  // Handle number-based DineroWrapper
+  if (isDineroWrapper(dineroObject)) {
+    const wrapper = dineroObject as unknown as DineroWrapper;
+    const currentScale = wrapper.scale;
+    const targetScale = Number(newScale);
+    const genkinInstance = wrapper._genkin;
+
+    if (targetScale === currentScale) {
+      return dineroObject;
+    }
+
+    // Get the currency's base (default to 10 for decimal currencies)
+    const currencyBase = genkinInstance.currency.base ?? 10;
+    let newAmount: number;
+
+    if (targetScale > currentScale) {
+      // Increasing precision - multiply by power of currency base
+      const scaleFactor = Math.pow(currencyBase, targetScale - currentScale);
+      newAmount = genkinInstance.minorUnits * scaleFactor;
+    } else {
+      // Decreasing precision - divide by power of currency base
+      const scaleFactor = Math.pow(currencyBase, currentScale - targetScale);
+      
+      if (divide) {
+        // Use the provided divide function
+        // Create a number calculator for the divide operation
+        const numberCalculator: Calculator<number> = {
+          add: (a, b) => a + b,
+          compare: (a, b) => (a < b ? ComparisonOperator.LT : a > b ? ComparisonOperator.GT : ComparisonOperator.EQ),
+          decrement: (a) => a - 1,
+          increment: (a) => a + 1,
+          integerDivide: (a, b) => Math.trunc(a / b),
+          modulo: (a, b) => a % b,
+          multiply: (a, b) => a * b,
+          power: (a, b) => Math.pow(a, b),
+          subtract: (a, b) => a - b,
+          zero: () => 0,
+        };
+        newAmount = divide(genkinInstance.minorUnits, scaleFactor, numberCalculator);
+      } else {
+        // Default to floor (integer division)
+        newAmount = Math.trunc(genkinInstance.minorUnits / scaleFactor);
+      }
+    }
+
+    // Create new Genkin with the converted amount and new precision
+    const newGenkin = genkin(newAmount, {
+      currency: genkinInstance.currency,
+      precision: targetScale,
+      isMinorUnits: true,
+    });
+
+    return new DineroWrapper(newGenkin) as unknown as Dinero<T>;
+  }
+
+  // Handle generic GenericDineroWrapper
+  if (isGenericDineroWrapper(dineroObject)) {
+    const wrapper = dineroObject as GenericDineroWrapper<T>;
+    const calculator = wrapper._genkin.calculator;
+    const genkinInstance = wrapper._genkin;
+    const currentScale = genkinInstance.precision;
+    const targetScale = scaleToNumber(newScale);
+
+    if (targetScale === currentScale) {
+      return dineroObject;
+    }
+
+    // Helper to convert a number to the calculator's type
+    function intFromNumber(n: number): T {
+      let result = calculator.zero();
+      for (let i = 0; i < Math.abs(n); i++) {
+        result = calculator.increment(result);
+      }
+      if (n < 0) {
+        result = calculator.subtract(calculator.zero(), result);
+      }
+      return result;
+    }
+
+    // Get the currency's base from the dinero currency (already in type T)
+    // The wrapper's currency property returns the base in the correct type
+    const dineroCurrency = wrapper.currency;
+    let base: T;
+    if (Array.isArray(dineroCurrency.base)) {
+      // For non-decimal currencies with array base, use the first element
+      base = dineroCurrency.base[0];
+    } else {
+      base = dineroCurrency.base;
+    }
+    let newAmount: T;
+
+    if (targetScale > currentScale) {
+      // Increasing precision - multiply by power of currency base
+      const scaleDiff = targetScale - currentScale;
+      const scaleFactor = intFromNumber(scaleDiff);
+      const multiplier = calculator.power(base, scaleFactor);
+      newAmount = calculator.multiply(genkinInstance.minorUnits, multiplier);
+    } else {
+      // Decreasing precision - divide by power of currency base
+      const scaleDiff = currentScale - targetScale;
+      const scaleFactor = intFromNumber(scaleDiff);
+      const divisor = calculator.power(base, scaleFactor);
+      
+      if (divide) {
+        // Use the provided divide function
+        newAmount = divide(genkinInstance.minorUnits, divisor, calculator);
+      } else {
+        // Default to floor (integer division)
+        newAmount = calculator.integerDivide(genkinInstance.minorUnits, divisor);
+      }
+    }
+
+    // Create new Genkin with the converted amount and target precision
+    const newGenkin = new GenericGenkin(newAmount, calculator, {
+      currency: genkinInstance.currency,
+      precision: targetScale,
+      rounding: genkinInstance.rounding,
+      isMinorUnits: true,
+    });
+
+    return new GenericDineroWrapper(newGenkin, calculator, wrapper._originalExponent) as Dinero<T>;
+  }
+
+  throw new Error('Invalid Dinero object');
+}
+
+// Re-export rounding functions for compatibility
 export {
   down,
   up,
@@ -655,7 +936,7 @@ export {
   halfOdd,
   halfAwayFromZero,
   halfTowardsZero,
-} from './divide/index.js';
+};
 
 // Export types for compatibility
 export type {

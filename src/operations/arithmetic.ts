@@ -1,6 +1,6 @@
 import { Genkin } from '../core/genkin.js';
 import { safeAdd, safeSubtract, safeMultiply, safeDivide } from '../core/precision.js';
-import { assert } from '../dinero-v2/index.js';
+import { max } from './comparison.js';
 
 /**
  * Represents a scaled ratio for allocation
@@ -242,4 +242,114 @@ function normalizeRatios(ratios: AllocationRatio[]): number[] {
  */
 export function percentage(genkin: Genkin, percentage: number): Genkin {
   return multiply(genkin, percentage / 100);
+}
+
+/**
+ * Represents a conversion rate
+ */
+export interface ConversionRate {
+  amount: number;
+  scale: number;
+}
+
+/**
+ * Convert a Genkin instance to a different currency using an exchange rate
+ * 
+ * @param genkin - The source Genkin instance
+ * @param newCurrency - The target currency configuration
+ * @param rate - The exchange rate (simple number or { amount, scale })
+ * @returns A new Genkin instance in the target currency
+ * 
+ * @example
+ * ```typescript
+ * // Simple rate conversion
+ * const usd = genkin(5.00, { currency: 'USD' });
+ * const eur = convert(usd, EUR_CONFIG, 0.89); // €4.45
+ * 
+ * // Scaled rate conversion
+ * const usd = genkin(5.00, { currency: 'USD' });
+ * const eur = convert(usd, EUR_CONFIG, { amount: 89, scale: 2 }); // €4.45
+ * ```
+ */
+/**
+ * Transform a Genkin instance to a different scale (precision)
+ */
+export function transformScale(genkin: Genkin, targetScale: number): Genkin {
+  return genkin.convertPrecision(targetScale);
+}
+
+export function convert(
+  genkin: Genkin,
+  newCurrency: { code: string; base?: number; precision: number },
+  rate: number | ConversionRate
+): Genkin {
+  const sourceScale = genkin.precision;
+  const destExponent = newCurrency.precision;
+  // Get the currency's base (default to 10 for decimal currencies)
+  const currencyBase = newCurrency.base ?? 10;
+
+  let newAmount: number;
+  let newScale: number;
+
+  if (typeof rate === 'object' && 'amount' in rate) {
+    // Scaled rate: { amount, scale }
+    newAmount = genkin.minorUnits * rate.amount;
+    newScale = sourceScale + rate.scale;
+  } else {
+    // Simple rate - use destination currency's exponent as scale
+    newScale = destExponent;
+
+    if (newScale > sourceScale) {
+      // Scale up the amount
+      const scaleDiff = newScale - sourceScale;
+      const scaleFactor = Math.pow(currencyBase, scaleDiff);
+      newAmount = genkin.minorUnits * rate * scaleFactor;
+    } else {
+      // No scale adjustment needed
+      newAmount = genkin.minorUnits * rate;
+    }
+  }
+
+  // Create a minimal currency object for Genkin
+  const targetCurrency = {
+    code: newCurrency.code,
+    numeric: 0,
+    precision: newCurrency.precision,
+    symbol: newCurrency.code,
+    name: newCurrency.code,
+    base: newCurrency.base ?? 10,
+    format: () => '',
+    parse: () => 0,
+  };
+
+  return new Genkin(newAmount, {
+    currency: targetCurrency,
+    precision: newScale,
+    rounding: genkin.rounding,
+    isMinorUnits: true,
+  });
+}
+
+/**
+ * Normalize the scale of an array of Genkin instances to the highest scale
+ * All instances must have the same currency
+ */
+export function normalizeScale(genkins: Genkin[]): Genkin[] {
+  if (genkins.length === 0) {
+    return [];
+  }
+
+  // Find the highest scale
+  const highestScale = genkins.reduce((highest, current) => {
+    return Math.max(highest, current.precision);
+  }, 0);
+
+  // Convert all instances to the highest scale
+  return genkins.map((genkin) => {
+    if (genkin.precision === highestScale) {
+      return genkin;
+    } else {
+      return transformScale(genkin, highestScale);
+    }
+  });
 }

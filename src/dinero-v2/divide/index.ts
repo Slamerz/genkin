@@ -50,12 +50,20 @@ export const halfUp: DivideOperation = <TAmount>(
   factor: TAmount,
   calculator: Calculator<TAmount>
 ): TAmount => {
+  const quotient = calculator.integerDivide(amount, factor);
+  const remainder = calculator.modulo(amount, factor);
   const two = intFromNumber(2, calculator);
-  const doubledAmount = calculator.multiply(amount, two);
-  const doubledFactor = calculator.multiply(factor, two);
-  const quotient = calculator.integerDivide(doubledAmount, doubledFactor);
-
-  return calculator.integerDivide(quotient, two);
+  
+  // Check if remainder >= half of factor (round up)
+  const doubledRemainder = calculator.multiply(remainder, two);
+  const comparison = calculator.compare(doubledRemainder, factor);
+  
+  // If doubledRemainder >= factor, round up
+  if (comparison >= 0) {
+    return calculator.increment(quotient);
+  }
+  
+  return quotient;
 };
 
 /**
@@ -66,13 +74,20 @@ export const halfDown: DivideOperation = <TAmount>(
   factor: TAmount,
   calculator: Calculator<TAmount>
 ): TAmount => {
+  const quotient = calculator.integerDivide(amount, factor);
+  const remainder = calculator.modulo(amount, factor);
   const two = intFromNumber(2, calculator);
-  const doubledAmount = calculator.multiply(amount, two);
-  const doubledFactor = calculator.multiply(factor, two);
-  const quotient = calculator.integerDivide(doubledAmount, doubledFactor);
-
-  // Round down for ties
-  return calculator.integerDivide(quotient, two);
+  
+  // Check if remainder > half of factor (round up only if past half)
+  const doubledRemainder = calculator.multiply(remainder, two);
+  const comparison = calculator.compare(doubledRemainder, factor);
+  
+  // If doubledRemainder > factor, round up
+  if (comparison > 0) {
+    return calculator.increment(quotient);
+  }
+  
+  return quotient;
 };
 
 /**

@@ -28,6 +28,8 @@ export {
   multiply,
   divide,
   allocate,
+  transformScale,
+  normalizeScale,
   equals,
   lessThan,
   lessThanOrEqual,

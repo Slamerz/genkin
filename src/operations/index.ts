@@ -7,6 +7,8 @@ export {
   abs,
   negate,
   allocate,
+  transformScale,
+  normalizeScale,
 } from './arithmetic.js';
 
 // Allocation types

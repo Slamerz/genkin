@@ -250,6 +250,140 @@ export function createArithmeticOperations<T>(calculator: Calculator<T>) {
     });
   }
 
+  /**
+   * Transform a Genkin instance to a different scale (precision)
+   */
+  function transformScale(genkin: GenkinInstance<T>, targetScale: number): GenkinInstance<T> {
+    // Convert targetScale to calculator type
+    let scale = calculator.zero();
+    for (let i = 0; i < targetScale; i++) {
+      scale = calculator.increment(scale);
+    }
+
+    const currentPrecision = genkin.precision;
+
+    if (targetScale === currentPrecision) {
+      // No conversion needed
+      return genkin;
+    }
+
+    // Use the currency's base for calculations
+    const currencyBase = genkin.currency.base ?? 10;
+    const base = intFromNumber(currencyBase);
+    let newAmount: T;
+
+    if (targetScale > currentPrecision) {
+      // Increasing precision - multiply by power of currency base
+      const scaleDiff = targetScale - currentPrecision;
+      let scaleFactor = calculator.zero();
+      for (let i = 0; i < scaleDiff; i++) {
+        scaleFactor = calculator.increment(scaleFactor);
+      }
+      const multiplier = calculator.power(base, scaleFactor);
+      newAmount = calculator.multiply(genkin.minorUnits, multiplier);
+    } else {
+      // Decreasing precision - divide by power of currency base and round
+      const scaleDiff = currentPrecision - targetScale;
+      let scaleFactor = calculator.zero();
+      for (let i = 0; i < scaleDiff; i++) {
+        scaleFactor = calculator.increment(scaleFactor);
+      }
+      const divisor = calculator.power(base, scaleFactor);
+      newAmount = calculator.integerDivide(genkin.minorUnits, divisor);
+    }
+
+    // Create new Genkin with the converted amount and target precision
+    return new GenericGenkin(newAmount, calculator, {
+      currency: genkin.currency,
+      precision: targetScale,
+      rounding: genkin.rounding,
+      isMinorUnits: true, // The amount is already in minor units
+    });
+  }
+
+  /**
+   * Convert a Genkin instance to a different currency using a rate
+   * @param genkin - The source Genkin instance
+   * @param newCurrency - The target currency configuration
+   * @param rate - The exchange rate (simple value or { amount, scale })
+   */
+  function convert(
+    genkin: GenkinInstance<T>,
+    newCurrency: { code: string; base?: number; precision: number },
+    rate: T | { amount: T; scale: number }
+  ): GenkinInstance<T> {
+    const sourceScale = genkin.precision;
+    const destExponent = newCurrency.precision;
+    // Get the currency's base (default to 10 for decimal currencies)
+    const currencyBaseNum = newCurrency.base ?? 10;
+    
+    let newAmount: T;
+    let newScale: number;
+
+    if (typeof rate === 'object' && rate !== null && 'amount' in rate) {
+      // Scaled rate: { amount, scale }
+      const scaledRate = rate as { amount: T; scale: number };
+      newAmount = calculator.multiply(genkin.minorUnits, scaledRate.amount);
+      newScale = sourceScale + scaledRate.scale;
+    } else {
+      // Simple rate - use destination currency's exponent as scale
+      newScale = destExponent;
+      
+      if (newScale > sourceScale) {
+        // Scale up the amount
+        const scaleDiff = newScale - sourceScale;
+        const base = intFromNumber(currencyBaseNum);
+        const scaleFactor = calculator.power(base, intFromNumber(scaleDiff));
+        newAmount = calculator.multiply(calculator.multiply(genkin.minorUnits, rate as T), scaleFactor);
+      } else {
+        // No scale adjustment needed
+        newAmount = calculator.multiply(genkin.minorUnits, rate as T);
+      }
+    }
+
+    // Create a Currency object from the config
+    const targetCurrency = {
+      code: newCurrency.code,
+      numeric: 0,
+      precision: newCurrency.precision,
+      symbol: newCurrency.code,
+      name: newCurrency.code,
+      base: newCurrency.base ?? 10,
+      format: () => '',
+      parse: () => 0,
+    };
+
+    return new GenericGenkin(newAmount, calculator, {
+      currency: targetCurrency,
+      precision: newScale,
+      rounding: genkin.rounding,
+      isMinorUnits: true,
+    });
+  }
+
+  /**
+   * Normalize the scale of an array of Genkin instances to the highest scale
+   */
+  function normalizeScale(genkins: GenkinInstance<T>[]): GenkinInstance<T>[] {
+    if (genkins.length === 0) {
+      return [];
+    }
+
+    // Find the highest scale (precision)
+    const highestScale = genkins.reduce((highest, current) => {
+      return Math.max(highest, current.precision);
+    }, 0);
+
+    // Convert all instances to the highest scale
+    return genkins.map((genkin) => {
+      if (genkin.precision === highestScale) {
+        return genkin;
+      } else {
+        return transformScale(genkin, highestScale);
+      }
+    });
+  }
+
   return {
     add,
     subtract,
@@ -258,6 +392,9 @@ export function createArithmeticOperations<T>(calculator: Calculator<T>) {
     negate,
     abs,
     allocate,
+    convert,
+    transformScale,
+    normalizeScale,
   };
 }
 

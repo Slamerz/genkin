@@ -5,6 +5,8 @@ import { CurrencyRegistry, currencyRegistry } from './registry.js';
  */
 export type CurrencyCode = string;
 
+export type CurrencyRate = number | { amount: number; scale: number };
+
 /**
  * Currency configuration interface
  */

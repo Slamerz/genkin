@@ -197,15 +197,17 @@ export class Genkin {
       return this;
     }
 
+    // Use the currency's base for calculations
+    const currencyBase = this._currency.base ?? 10;
     let newAmount: number;
 
     if (newPrecision > currentPrecision) {
-      // Increasing precision - multiply by power of 10
-      const scaleFactor = Math.pow(10, newPrecision - currentPrecision);
+      // Increasing precision - multiply by power of currency base
+      const scaleFactor = Math.pow(currencyBase, newPrecision - currentPrecision);
       newAmount = this._amount * scaleFactor;
     } else {
-      // Decreasing precision - divide by power of 10 and round
-      const scaleFactor = Math.pow(10, currentPrecision - newPrecision);
+      // Decreasing precision - divide by power of currency base and round
+      const scaleFactor = Math.pow(currencyBase, currentPrecision - newPrecision);
       const unrounded = this._amount / scaleFactor;
 
       // Apply rounding
