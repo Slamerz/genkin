@@ -1,6 +1,6 @@
 import type { DineroOptions } from "../../../src/dinero-v2";
 import { dinero } from "../../../src/dinero-v2";
 
-export function createNumberDinero(options: DineroOptions) {
+export function createNumberDinero(options: DineroOptions<number>) {
   return dinero(options);
 }
