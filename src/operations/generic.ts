@@ -490,8 +490,7 @@ export function createComparisonOperations<T>(calculator: Calculator<T>) {
    * Check if a Genkin instance is positive (>= 0)
    */
   function isPositive(genkin: GenkinInstance<T>): boolean {
-    const result = calculator.compare(genkin.minorUnits, calculator.zero());
-    return result === ComparisonOperator.GT || result === ComparisonOperator.EQ;
+    return calculator.compare(genkin.minorUnits, calculator.zero()) !== ComparisonOperator.LT;
   }
 
   /**
@@ -525,6 +524,89 @@ export function createComparisonOperations<T>(calculator: Calculator<T>) {
     );
   }
 
+  /**
+   * Check if a Genkin instance has sub-units (fractional parts)
+   * For decimal currencies, checks if there are fractional parts based on precision
+   * For non-decimal currencies, checks if amount is not a whole unit
+   * 
+   * Note: This function works with the Genkin currency format (single base number).
+   * For multi-base currencies, use the wrapper function which has access to the original Dinero currency.
+   */
+  function hasSubUnits(genkin: GenkinInstance<T>): boolean {
+    const minorUnits = genkin.minorUnits;
+    const precision = genkin.precision;
+    const currencyBaseNum = genkin.currency.base ?? 10;
+    
+    // Convert base to type T
+    let currencyBase = calculator.zero();
+    for (let i = 0; i < currencyBaseNum; i++) {
+      currencyBase = calculator.increment(currencyBase);
+    }
+    
+    // Calculate base^precision
+    let precisionValue = calculator.zero();
+    for (let i = 0; i < precision; i++) {
+      precisionValue = calculator.increment(precisionValue);
+    }
+    const divisor = calculator.power(currencyBase, precisionValue);
+    
+    // Check if minorUnits is divisible by divisor
+    const remainder = calculator.modulo(minorUnits, divisor);
+    return calculator.compare(remainder, calculator.zero()) !== ComparisonOperator.EQ;
+  }
+
+  /**
+   * Find the maximum from an array of Genkin instances
+   * All instances must have the same currency
+   */
+  function maximum(genkins: readonly GenkinInstance<T>[]): GenkinInstance<T> {
+    if (genkins.length === 0) {
+      throw new Error('Cannot find maximum of empty array');
+    }
+
+    if (genkins.length === 1) {
+      return genkins[0];
+    }
+
+    // All must have the same currency
+    const firstCurrency = genkins[0].currency.code;
+    for (let i = 1; i < genkins.length; i++) {
+      if (genkins[i].currency.code !== firstCurrency) {
+        throw new Error(`Cannot compare different currencies: ${firstCurrency} and ${genkins[i].currency.code}`);
+      }
+    }
+
+    return genkins.reduce((max, current) =>
+      greaterThan(current, max) ? current : max
+    );
+  }
+
+  /**
+   * Find the minimum from an array of Genkin instances
+   * All instances must have the same currency
+   */
+  function minimum(genkins: readonly GenkinInstance<T>[]): GenkinInstance<T> {
+    if (genkins.length === 0) {
+      throw new Error('Cannot find minimum of empty array');
+    }
+
+    if (genkins.length === 1) {
+      return genkins[0];
+    }
+
+    // All must have the same currency
+    const firstCurrency = genkins[0].currency.code;
+    for (let i = 1; i < genkins.length; i++) {
+      if (genkins[i].currency.code !== firstCurrency) {
+        throw new Error(`Cannot compare different currencies: ${firstCurrency} and ${genkins[i].currency.code}`);
+      }
+    }
+
+    return genkins.reduce((min, current) =>
+      lessThan(current, min) ? current : min
+    );
+  }
+
   return {
     compare,
     equals,
@@ -537,6 +619,9 @@ export function createComparisonOperations<T>(calculator: Calculator<T>) {
     isNegative,
     min,
     max,
+    hasSubUnits,
+    maximum,
+    minimum,
   };
 }
 

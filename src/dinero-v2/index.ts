@@ -7,7 +7,7 @@ import { Currency as GenkinCurrency, CurrencyConfig, getCurrencyConfig, createCu
 import { createGenkin, GenericGenkin } from '../core/factory.js';
 import { createArithmeticOperations, createComparisonOperations } from '../operations/generic.js';
 import { add as genkinAdd, subtract as genkinSubtract, multiply as genkinMultiply, divide as genkinDivide, allocate as genkinAllocate, convert as genkinConvert, normalizeScale as genkinNormalizeScale, transformScale as genkinTransformScale } from '../operations/arithmetic.js';
-import { equals as genkinEquals, lessThan as genkinLessThan, greaterThan as genkinGreaterThan, isZero as genkinIsZero, isPositive as genkinIsPositive, isNegative as genkinIsNegative, min as genkinMin, max as genkinMax } from '../operations/comparison.js';
+import { equals as genkinEquals, lessThan as genkinLessThan, greaterThan as genkinGreaterThan, isZero as genkinIsZero, isPositive as genkinIsPositive, isNegative as genkinIsNegative, min as genkinMin, max as genkinMax, hasSubUnits as genkinHasSubUnits } from '../operations/comparison.js';
 import type { ScaledRatio, AllocationRatio } from '../operations/arithmetic.js';
 import type { GenkinInstance, GenericAllocationRatio } from '../core/types.js';
 import type { Calculator as GenkinCalculator } from '../core/calculator.js';
@@ -563,6 +563,7 @@ export function allocate<T>(dineroObject: Dinero<T>, ratios: (T | { amount: T; s
  * Compare two Dinero objects
  */
 export function compare<T>(dineroObject: Dinero<T>, comparator: Dinero<T>): ComparisonOperator {
+  assert(dineroObject.currency.code === comparator.currency.code, 'Objects must have the same currency.');
   if (isDineroWrapper(dineroObject) && isDineroWrapper(comparator)) {
     const result = genkinLessThan(dineroObject._genkin, comparator._genkin) ? ComparisonOperator.LT :
                    genkinGreaterThan(dineroObject._genkin, comparator._genkin) ? ComparisonOperator.GT :
@@ -587,7 +588,12 @@ export function compare<T>(dineroObject: Dinero<T>, comparator: Dinero<T>): Comp
  * Check if two Dinero objects are equal
  */
 export function equal<T>(dineroObject: Dinero<T>, comparator: Dinero<T>): boolean {
-  return compare(dineroObject, comparator) === ComparisonOperator.EQ;
+  if(dineroObject.currency.code !== comparator.currency.code) {
+    return false;
+  }
+
+  const [normalizedDineroObject, normalizedComparator] = normalizeScale([dineroObject, comparator]);
+  return compare(normalizedDineroObject, normalizedComparator) === ComparisonOperator.EQ;
 }
 
 /**
@@ -657,6 +663,79 @@ export function isPositive<T>(dineroObject: Dinero<T>): boolean {
 }
 
 /**
+ * Get the greatest of the passed Dinero objects.
+ *
+ * @param dineroObjects - Array of Dinero objects to compare
+ * @returns The Dinero object with the greatest value
+ *
+ * @example
+ * ```typescript
+ * const d1 = dinero({ amount: 150, currency: USD });
+ * const d2 = dinero({ amount: 50, currency: USD });
+ * const max = maximum([d1, d2]); // Returns d1 (150 USD)
+ * ```
+ */
+export function maximum<T>(dineroObjects: ReadonlyArray<Dinero<T>>): Dinero<T> {
+  assert(dineroObjects.length > 0, 'Cannot find maximum of empty array');
+
+  // First normalize all objects to the same scale, then find the maximum
+  const normalizedObjects = normalizeScale(dineroObjects);
+
+  // Handle number-based DineroWrapper
+  if (isDineroWrapper(normalizedObjects[0])) {
+    const genkins = normalizedObjects.map(d => (d as unknown as DineroWrapper)._genkin);
+    const maxGenkin = genkinMax(...genkins);
+    return new DineroWrapper(maxGenkin) as unknown as Dinero<T>;
+  }
+
+  // Handle generic GenericDineroWrapper
+  if (isGenericDineroWrapper(normalizedObjects[0])) {
+    const wrappers = normalizedObjects.map(d => d as GenericDineroWrapper<T>);
+    const calculator = wrappers[0]._genkin.calculator;
+    const ops = createComparisonOperations(calculator);
+    const genkins = wrappers.map(w => w._genkin);
+    const maxGenkin = ops.maximum(genkins);
+    const originalExponent = wrappers[0]._originalExponent;
+    return new GenericDineroWrapper(maxGenkin, calculator, originalExponent) as Dinero<T>;
+  }
+
+  throw new Error('Invalid Dinero objects');
+}
+
+/**
+ * Get the smallest of the passed Dinero objects.
+ *
+ * @param dineroObjects - Array of Dinero objects to compare
+ * @returns The Dinero object with the smallest value
+ *
+ * @example
+ * ```typescript
+ * const d1 = dinero({ amount: 150, currency: USD });
+ * const d2 = dinero({ amount: 50, currency: USD });
+ * const min = minimum([d1, d2]); // Returns d2 (50 USD)
+ * ```
+ */
+export function minimum<T>(dineroObjects: ReadonlyArray<Dinero<T>>): Dinero<T> {
+  assert(dineroObjects.length > 0, 'Cannot find minimum of empty array');
+
+  // Check that all objects have the same currency
+  const firstCurrency = dineroObjects[0].currency.code;
+  for (const dineroObject of dineroObjects) {
+    assert(dineroObject.currency.code === firstCurrency, 'Objects must have the same currency.');
+  }
+
+  // Find the minimum by comparing all objects
+  let minObject = dineroObjects[0];
+  for (let i = 1; i < dineroObjects.length; i++) {
+    if (compare(dineroObjects[i], minObject) === ComparisonOperator.LT) {
+      minObject = dineroObjects[i];
+    }
+  }
+
+  return minObject;
+}
+
+/**
  * Check if a Dinero object is negative
  */
 export function isNegative<T>(dineroObject: Dinero<T>): boolean {
@@ -672,6 +751,92 @@ export function isNegative<T>(dineroObject: Dinero<T>): boolean {
   }
 
   throw new Error('Invalid Dinero object');
+}
+
+/**
+ * Check if the Dinero object has sub-units
+ * 
+ * For decimal currencies, checks if there are fractional parts based on the current scale/precision.
+ * For non-decimal currencies with a single base, checks if amount is not a whole unit.
+ * For multi-base currencies (e.g., GBP with base [20, 12]), checks if amount is not a whole unit
+ * based on the product of all bases.
+ * 
+ * @param dineroObject - The Dinero object to check
+ * @returns true if the object has sub-units, false otherwise
+ * 
+ * @example
+ * ```typescript
+ * const d1 = dinero({ amount: 1100, currency: USD }); // $11.00
+ * hasSubUnits(d1); // false
+ * 
+ * const d2 = dinero({ amount: 1150, currency: USD }); // $11.50
+ * hasSubUnits(d2); // true
+ * 
+ * const d3 = dinero({ amount: 1100, currency: USD, scale: 3 }); // $1.100
+ * hasSubUnits(d3); // true
+ * ```
+ */
+export function hasSubUnits<T>(dineroObject: Dinero<T>): boolean {
+  const dineroCurrency = dineroObject.currency;
+  const base = dineroCurrency.base;
+  
+  // Check if base is an array (multi-base currency like GBP [20, 12])
+  if (Array.isArray(base)) {
+    // For multi-base currencies, check if minorUnits is divisible by the product of all bases
+    if (isDineroWrapper(dineroObject)) {
+      const product = base.reduce((acc, b) => acc * Number(b), 1);
+      return dineroObject._genkin.minorUnits % product !== 0;
+    }
+    
+    if (isGenericDineroWrapper(dineroObject)) {
+      const dineroWrapper = dineroObject as GenericDineroWrapper<T>;
+      const calculator = dineroWrapper._genkin.calculator;
+      const minorUnits = dineroWrapper._genkin.minorUnits;
+      
+      // Calculate product of all bases
+      let product = calculator.zero();
+      for (let i = 0; i < base.length; i++) {
+        const baseValue = base[i];
+        if (i === 0) {
+          product = baseValue;
+        } else {
+          product = calculator.multiply(product, baseValue);
+        }
+      }
+      
+      // Check if minorUnits is divisible by product
+      const remainder = calculator.modulo(minorUnits, product);
+      return calculator.compare(remainder, calculator.zero()) !== ComparisonOperator.EQ;
+    }
+  }
+  
+  // For single base currencies, use the core function
+  // The core function handles both decimal and non-decimal currencies correctly
+  if (isDineroWrapper(dineroObject)) {
+    return genkinHasSubUnits(dineroObject._genkin);
+  }
+
+  if (isGenericDineroWrapper(dineroObject)) {
+    const dineroWrapper = dineroObject as GenericDineroWrapper<T>;
+    const calculator = dineroWrapper._genkin.calculator;
+    const ops = createComparisonOperations(calculator);
+    return ops.hasSubUnits(dineroWrapper._genkin);
+  }
+
+  throw new Error('Invalid Dinero object');
+}
+
+
+export function haveSameCurrency<T>(dineroObjects: ReadonlyArray<Dinero<T>>): boolean {
+  const firstCurrency = dineroObjects[0].currency;
+  return dineroObjects.every(dineroObject => dineroObject.currency.code === firstCurrency.code);
+}
+
+/**
+ * Check whether a set of Dinero objects have the same amount.
+ * */
+export function haveSameAmount<T>(dineroObjects: ReadonlyArray<Dinero<T>>): boolean {
+  return dineroObjects.every((dineroObject, index) => index === 0 || compare(dineroObject, dineroObjects[index - 1]) === ComparisonOperator.EQ);
 }
 
 /**
@@ -762,7 +927,7 @@ export function convert<T>(
  * Normalize the scale of an array of Dinero objects to the highest scale
  * All objects must have the same currency
  */
-export function normalizeScale<T>(dineroObjects: Dinero<T>[]): Dinero<T>[] {
+export function normalizeScale<T>(dineroObjects: ReadonlyArray<Dinero<T>>): Dinero<T>[] {
   assert(dineroObjects.length > 0, 'Cannot normalize scale of empty array');
 
   // Check that all objects have the same currency

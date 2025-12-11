@@ -27,6 +27,7 @@ export {
   isZero,
   isPositive,
   isNegative,
+  hasSubUnits,
   min,
   max,
 } from './comparison.js';

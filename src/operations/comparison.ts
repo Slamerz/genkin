@@ -122,4 +122,23 @@ export function max(...genkins: Genkin[]): Genkin {
   return genkins.reduce((max, current) => {
     return greaterThan(current, max) ? current : max;
   });
+}
+
+/**
+ * Check if a Genkin instance has sub-units (fractional parts)
+ * For decimal currencies, checks if there are fractional parts based on precision
+ * For non-decimal currencies, checks if amount is not a whole unit
+ * 
+ * Note: This function works with the Genkin currency format (single base number).
+ * For multi-base currencies, use the wrapper function which has access to the original Dinero currency.
+ */
+export function hasSubUnits(genkin: Genkin): boolean {
+  const minorUnits = genkin.minorUnits;
+  const precision = genkin.precision;
+  const currencyBase = genkin.currency.base ?? 10;
+
+  // For decimal currencies, check if minorUnits has fractional parts at the current precision
+  // This means checking if minorUnits is not divisible by base^precision
+  const divisor = Math.pow(currencyBase, precision);
+  return minorUnits % divisor !== 0;
 } 

@@ -56,8 +56,7 @@ describe('add', () => {
           expect(() => {
             add(d1, d2);
           }).toThrowErrorMatchingInlineSnapshot(
-            "[Error: [Dinero.js] Objects must have the same currency.]"
-          );
+            `[Error: [Dinero.js] Objects must have the same currency.]`);
         });
       });
       describe('non-decimal currencies', () => {
@@ -105,8 +104,7 @@ describe('add', () => {
           expect(() => {
             add(d1, d2);
           }).toThrowErrorMatchingInlineSnapshot(
-            "[Error: [Dinero.js] Objects must have the same currency.]"
-          );
+            `[Error: [Dinero.js] Objects must have the same currency.]`);
         });
       });
     });
@@ -191,8 +189,7 @@ describe('add', () => {
           expect(() => {
             add(d1, d2);
           }).toThrowErrorMatchingInlineSnapshot(
-            "[Error: [Dinero.js] Objects must have the same currency.]"
-          );
+            `[Error: [Dinero.js] Objects must have the same currency.]`);
         });
       });
       describe('non-decimal currencies', () => {
@@ -239,8 +236,7 @@ describe('add', () => {
           expect(() => {
             add(d1, d2);
           }).toThrowErrorMatchingInlineSnapshot(
-            "[Error: [Dinero.js] Objects must have the same currency.]"
-          );
+            `[Error: [Dinero.js] Objects must have the same currency.]`);
         });
       });
     });
@@ -329,8 +325,7 @@ describe('add', () => {
           expect(() => {
             add(d1, d2);
           }).toThrowErrorMatchingInlineSnapshot(
-            "[Error: [Dinero.js] Objects must have the same currency.]"
-          );
+            `[Error: [Dinero.js] Objects must have the same currency.]`);
         });
       });
       describe('non-decimal currencies', () => {
@@ -381,8 +376,7 @@ describe('add', () => {
           expect(() => {
             add(d1, d2);
           }).toThrowErrorMatchingInlineSnapshot(
-            "[Error: [Dinero.js] Objects must have the same currency.]"
-          );
+            `[Error: [Dinero.js] Objects must have the same currency.]`);
         });
       });
     });
