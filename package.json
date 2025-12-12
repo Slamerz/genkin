@@ -57,6 +57,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
     "bundle:analyze": "bundlemon --config bundlemon.config.js",
     "bundle:size": "bun run build && bun run scripts/bundle-size.ts"
   },
@@ -66,6 +68,8 @@
     "@types/bun": "latest",
     "@types/gzip-size": "^5.1.1",
     "@types/node": "^24.4.0",
+    "@vitest/coverage-v8": "3.2.4",
+    "@vitest/ui": "3.2.4",
     "big.js": "^7.0.1",
     "bundlemon": "^3.1.0",
     "dinero-og-v1": "npm:dinero.js@^1.9.1",

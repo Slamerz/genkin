@@ -12,7 +12,7 @@ import type { ScaledRatio, AllocationRatio } from '../operations/arithmetic.js';
 import type { GenkinInstance, GenericAllocationRatio } from '../core/types.js';
 import type { Calculator as GenkinCalculator } from '../core/calculator.js';
 import type { Currency } from './currencies.js';
-import { Calculator, Dinero, DineroOptions, DineroSnapshot, DineroFactory, CreateDineroOptions, ScaledAmount, Rates, ComparisonOperator, DivideOperation } from './types.js';
+import { Calculator, Dinero, DineroOptions, DineroSnapshot, DineroFactory, CreateDineroOptions, ScaledAmount, Rates, ComparisonOperator, DivideOperation, Transformer } from './types.js';
 import { down, up, halfUp, halfDown, halfEven, halfOdd, halfAwayFromZero, halfTowardsZero } from './divide/index.js';
 
 /**
@@ -76,13 +76,16 @@ class GenericDineroWrapper<T> implements Dinero<T> {
   public readonly _genkin: GenkinInstance<T>;
   private readonly _calculator: GenkinCalculator<T>;
   public readonly _originalExponent: T;
+  public readonly _originalBase?: T | readonly T[];
   public readonly __isGenericDineroWrapper = true as const;
 
-  constructor(genkin: GenkinInstance<T>, calculator: GenkinCalculator<T>, originalExponent?: T) {
+  constructor(genkin: GenkinInstance<T>, calculator: GenkinCalculator<T>, originalExponent?: T, originalBase?: T | readonly T[]) {
     this._genkin = genkin;
     this._calculator = calculator;
     // Store original currency exponent (defaults to currency precision converted to type T)
     this._originalExponent = originalExponent ?? this._intToT(genkin.currency.precision);
+    // Store original base (may be an array for multi-base currencies)
+    this._originalBase = originalBase;
   }
 
   /**
@@ -158,10 +161,12 @@ class GenericDineroWrapper<T> implements Dinero<T> {
  */
 class DineroWrapper implements Dinero<number> {
   public readonly _genkin: Genkin;
+  public readonly _originalBase?: number | readonly number[];
   public readonly __isDineroWrapper = true as const;
 
-  constructor(genkin: Genkin) {
+  constructor(genkin: Genkin, originalBase?: number | readonly number[]) {
     this._genkin = genkin;
+    this._originalBase = originalBase;
   }
 
   get calculator(): Calculator<number> {
@@ -239,8 +244,8 @@ export function createDinero<T>(options: CreateDineroOptions<T>): DineroFactory<
       isMinorUnits: true,
     });
 
-    // Pass the original currency exponent
-    return new GenericDineroWrapper(genkinInstance, calculator, currency.exponent);
+    // Pass the original currency exponent and base
+    return new GenericDineroWrapper(genkinInstance, calculator, currency.exponent, currency.base);
   };
 }
 
@@ -267,8 +272,8 @@ export function dinero(options: DineroOptions<number>): Dinero<number> {
     isMinorUnits: true,
   });
 
-  // Wrap in Dinero-compatible interface
-  return new DineroWrapper(genkinInstance);
+  // Wrap in Dinero-compatible interface, preserving original base
+  return new DineroWrapper(genkinInstance, currency.base);
 }
 
 /**
@@ -276,6 +281,279 @@ export function dinero(options: DineroOptions<number>): Dinero<number> {
  */
 export function toSnapshot<T>(dineroObject: Dinero<T>): DineroSnapshot<T> {
   return dineroObject.toJSON();
+}
+
+/**
+ * Get the amount of a Dinero object as a decimal string.
+ *
+ * This function returns the amount as a string with the decimal point in the correct position.
+ * It only works with decimal currencies (base 10). For non-decimal currencies, use `toUnits`.
+ *
+ * @param dineroObject - The Dinero object to convert
+ * @param transformer - Optional transformer function to format the output
+ * @returns Decimal string representation or transformed output
+ * @throws Error if the currency is not decimal (non-base-10 or multi-base)
+ *
+ * @example
+ * ```typescript
+ * const d = dinero({ amount: 1050, currency: USD });
+ * toDecimal(d); // "10.50"
+ *
+ * // With transformer
+ * toDecimal(d, ({ value, currency }) => `${currency.code} ${value}`);
+ * // "USD 10.50"
+ *
+ * // Negative amounts
+ * const d2 = dinero({ amount: -1050, currency: USD });
+ * toDecimal(d2); // "-10.50"
+ * ```
+ */
+export function toDecimal<T, TOutput = string>(
+  dineroObject: Dinero<T>,
+  transformer?: Transformer<T, TOutput, string>
+): TOutput {
+  const { currency, scale } = dineroObject.toJSON();
+
+  // Check if currency is decimal (single base that's a multiple of 10)
+  // Handle number-based DineroWrapper
+  if (isDineroWrapper(dineroObject)) {
+    const originalBase = dineroObject._originalBase ?? currency.base;
+    const isMultiBase = Array.isArray(originalBase);
+    const base = isMultiBase 
+      ? (originalBase as number[]).reduce((acc, b) => acc * b, 1)
+      : Number(originalBase);
+    const isBaseTen = base % 10 === 0;
+    const isDecimal = !isMultiBase && isBaseTen;
+
+    assert(isDecimal, 'Currency is not decimal.');
+
+    const units = toUnits(dineroObject) as readonly number[];
+    const scaleNumber = Number(scale);
+    const value = getDecimalNumber(units, scaleNumber);
+
+    if (!transformer) {
+      return value as unknown as TOutput;
+    }
+
+    return transformer({ value, currency });
+  }
+
+  // Handle generic GenericDineroWrapper
+  if (isGenericDineroWrapper(dineroObject)) {
+    const dineroWrapper = dineroObject as GenericDineroWrapper<T>;
+    const calculator = dineroWrapper._genkin.calculator;
+    
+    const originalBase = dineroWrapper._originalBase ?? currency.base;
+    const isMultiBase = Array.isArray(originalBase);
+    
+    // Compute the base value
+    let base: T;
+    if (isMultiBase) {
+      const bases = originalBase as readonly T[];
+      base = bases.reduce((acc, b) => calculator.multiply(acc, b));
+    } else {
+      base = originalBase as T;
+    }
+    
+    // Check if base is a multiple of 10
+    const zero = calculator.zero();
+    let ten = zero;
+    for (let i = 0; i < 10; i++) {
+      ten = calculator.increment(ten);
+    }
+    const isBaseTen = calculator.compare(calculator.modulo(base, ten), zero) === ComparisonOperator.EQ;
+    const isDecimal = !isMultiBase && isBaseTen;
+
+    assert(isDecimal, 'Currency is not decimal.');
+
+    const units = toUnits(dineroObject) as readonly T[];
+    const scaleNumber = Number(scale);
+    const value = getDecimalGeneric(calculator, units, scaleNumber);
+
+    if (!transformer) {
+      return value as unknown as TOutput;
+    }
+
+    return transformer({ value, currency });
+  }
+
+  throw new Error('Invalid Dinero object');
+}
+
+/**
+ * Convert units to decimal string for number type
+ */
+function getDecimalNumber(units: readonly number[], scale: number): string {
+  const whole = String(units[0]);
+  const fractional = String(Math.abs(units[1]));
+
+  const decimal = `${whole}.${fractional.padStart(scale, '0')}`;
+
+  const leadsWithZero = units[0] === 0;
+  const isNegative = units[1] < 0;
+
+  // A leading negative zero is a special case because the `toString`
+  // won't preserve its negative sign (since 0 === -0).
+  return leadsWithZero && isNegative ? `-${decimal}` : decimal;
+}
+
+/**
+ * Convert units to decimal string for generic type
+ */
+function getDecimalGeneric<T>(
+  calculator: Calculator<T>,
+  units: readonly T[],
+  scale: number
+): string {
+  const zero = calculator.zero();
+  
+  // Get absolute value of fractional part
+  const fractionalValue = units[1];
+  const isNegativeFractional = calculator.compare(fractionalValue, zero) === ComparisonOperator.LT;
+  const absFractional = isNegativeFractional 
+    ? calculator.subtract(zero, fractionalValue)
+    : fractionalValue;
+
+  const whole = String(units[0]);
+  const fractional = String(absFractional);
+
+  const decimal = `${whole}.${fractional.padStart(scale, '0')}`;
+
+  const leadsWithZero = calculator.compare(units[0], zero) === ComparisonOperator.EQ;
+
+  // A leading negative zero is a special case because the `toString`
+  // won't preserve its negative sign (since 0 === -0).
+  return leadsWithZero && isNegativeFractional ? `-${decimal}` : decimal;
+}
+
+/**
+ * Get the amount of a Dinero object in units.
+ *
+ * This function returns the total amount divided into each unit and sub-unit, as an array.
+ * For example, an object representing $10.45 expressed as 1045 (with currency USD and no custom scale)
+ * would return [10, 45] for 10 dollars and 45 cents.
+ *
+ * @param dineroObject - The Dinero object to convert
+ * @param transformer - Optional transformer function to format the output
+ * @returns Array of units or transformed output
+ *
+ * @example
+ * ```typescript
+ * const d = dinero({ amount: 1050, currency: USD });
+ * toUnits(d); // [10, 50]
+ *
+ * // With transformer
+ * toUnits(d, ({ value, currency }) => `${value.join('.')} ${currency.code}`);
+ * // "10.50 USD"
+ *
+ * // Multi-base currency (old British Pounds: 20 shillings, 12 pence)
+ * const GBP = { code: 'GBP', base: [20, 12], exponent: 1 };
+ * const d2 = dinero({ amount: 267, currency: GBP });
+ * toUnits(d2); // [1, 2, 3] - 1 pound, 2 shillings, 3 pence
+ * ```
+ */
+export function toUnits<T, TOutput = readonly T[]>(
+  dineroObject: Dinero<T>,
+  transformer?: Transformer<T, TOutput, readonly T[]>
+): TOutput {
+  const { amount, currency, scale } = dineroObject.toJSON();
+
+  // Handle number-based DineroWrapper
+  if (isDineroWrapper(dineroObject)) {
+    // Use the original base (may be array for multi-base currencies)
+    const originalBase = dineroObject._originalBase ?? currency.base;
+    const bases = Array.isArray(originalBase) ? originalBase : [originalBase];
+    const divisors = getDivisorsNumber(bases.map((b) => Math.pow(Number(b), Number(scale))));
+    
+    const value = divisors.reduce<readonly number[]>(
+      (amounts, divisor, index) => {
+        const amountLeft = amounts[index];
+        const quotient = Math.trunc(amountLeft / divisor);
+        const remainder = amountLeft % divisor;
+        return [...amounts.filter((_, i) => i !== index), quotient, remainder];
+      },
+      [amount as number]
+    );
+
+    if (!transformer) {
+      return value as unknown as TOutput;
+    }
+
+    return transformer({ value: value as unknown as readonly T[], currency });
+  }
+
+  // Handle generic GenericDineroWrapper
+  if (isGenericDineroWrapper(dineroObject)) {
+    const dineroWrapper = dineroObject as GenericDineroWrapper<T>;
+    const calculator = dineroWrapper._genkin.calculator;
+    
+    // Use the original base (may be array for multi-base currencies)
+    const originalBase = dineroWrapper._originalBase ?? currency.base;
+    const bases = Array.isArray(originalBase) ? originalBase : [originalBase];
+    const divisors = getDivisorsGeneric(calculator, bases.map((b) => calculator.power(b, scale)));
+    
+    const value = divisors.reduce<readonly T[]>(
+      (amounts, divisor, index) => {
+        const amountLeft = amounts[index];
+        const quotient = calculator.integerDivide(amountLeft, divisor);
+        const remainder = calculator.modulo(amountLeft, divisor);
+        return [...amounts.filter((_, i) => i !== index), quotient, remainder];
+      },
+      [amount]
+    );
+
+    if (!transformer) {
+      return value as unknown as TOutput;
+    }
+
+    return transformer({ value, currency });
+  }
+
+  throw new Error('Invalid Dinero object');
+}
+
+/**
+ * Get divisors for number-based calculations
+ * For multi-base currencies, computes cumulative products from right to left
+ * e.g., [20, 12] becomes [240, 12] (20*12=240 for first divisor, 12 for second)
+ */
+function getDivisorsNumber(bases: number[]): number[] {
+  // Compute cumulative product from right to left
+  // For [20, 12]: result is [20*12, 12] = [240, 12]
+  const result: number[] = [];
+  let product = 1;
+  
+  // Start from the end and work backwards
+  for (let i = bases.length - 1; i >= 0; i--) {
+    product *= bases[i];
+    result.unshift(product);
+  }
+  
+  return result;
+}
+
+/**
+ * Get divisors for generic type calculations
+ * For multi-base currencies, computes cumulative products from right to left
+ */
+function getDivisorsGeneric<T>(calculator: Calculator<T>, bases: T[]): T[] {
+  if (bases.length === 0) {
+    return [];
+  }
+  
+  // Compute cumulative product from right to left
+  // For [20, 12]: result is [20*12, 12] = [240, 12]
+  const result: T[] = [];
+  let product = bases[bases.length - 1];
+  result.unshift(product);
+  
+  // Start from the second-to-last and work backwards
+  for (let i = bases.length - 2; i >= 0; i--) {
+    product = calculator.multiply(product, bases[i]);
+    result.unshift(product);
+  }
+  
+  return result;
 }
 
 // Type guards for duck typing
