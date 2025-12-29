@@ -1,0 +1,53 @@
+{
+	"name": "@genkin/dinero-v2",
+	"version": "0.1.0",
+	"description": "Dinero.js v2 compatible API built on Genkin core with generic numeric types",
+	"type": "module",
+	"main": "dist/index.cjs",
+	"module": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"files": [
+		"dist",
+		"README.md"
+	],
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"test": "vitest run"
+	},
+	"keywords": [
+		"dinero",
+		"money",
+		"currency",
+		"finance",
+		"typescript",
+		"generic",
+		"bigint",
+		"bigjs"
+	],
+	"author": "Genkin Team",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/genkin/genkin",
+		"directory": "packages/dinero-v2"
+	},
+	"bugs": {
+		"url": "https://github.com/genkin/genkin/issues"
+	},
+	"homepage": "https://genkin.dev",
+	"sideEffects": false,
+	"peerDependencies": {
+		"@genkin/core": "^0.1.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

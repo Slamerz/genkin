@@ -1,0 +1,50 @@
+{
+	"name": "@genkin/currencies",
+	"version": "0.1.0",
+	"description": "ISO 4217 currency definitions for Genkin",
+	"type": "module",
+	"main": "dist/index.cjs",
+	"module": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"files": [
+		"dist",
+		"README.md"
+	],
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"test": "vitest run"
+	},
+	"keywords": [
+		"currency",
+		"iso4217",
+		"money",
+		"finance",
+		"typescript"
+	],
+	"author": "Genkin Team",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/genkin/genkin",
+		"directory": "packages/currencies"
+	},
+	"bugs": {
+		"url": "https://github.com/genkin/genkin/issues"
+	},
+	"homepage": "https://genkin.dev",
+	"sideEffects": false,
+	"peerDependencies": {
+		"@genkin/core": "^0.1.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

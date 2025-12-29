@@ -1,66 +1,17 @@
 {
-  "name": "genkin",
-  "version": "0.0.1",
-  "type": "module",
-  "main": "dist/index.cjs",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "sideEffects": false,
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    },
-    "./core": {
-      "types": "./dist/core.d.ts",
-      "import": "./dist/core.js",
-      "require": "./dist/core.cjs"
-    },
-    "./operations": {
-      "types": "./dist/operations.d.ts",
-      "import": "./dist/operations.js",
-      "require": "./dist/operations.cjs"
-    },
-    "./formatters": {
-      "types": "./dist/formatters.d.ts",
-      "import": "./dist/formatters.js",
-      "require": "./dist/formatters.cjs"
-    },
-    "./currencies": {
-      "types": "./dist/currencies.d.ts",
-      "import": "./dist/currencies.js",
-      "require": "./dist/currencies.cjs"
-    },
-    "./utils": {
-      "types": "./dist/utils.d.ts",
-      "import": "./dist/utils.js",
-      "require": "./dist/utils.cjs"
-    },
-    "./dinero": {
-      "types": "./dist/dinero-v1.d.ts",
-      "import": "./dist/dinero-v1.js",
-      "require": "./dist/dinero-v1.cjs"
-    },
-    "./dineroV2": {
-      "types": "./dist/dinero-v2.d.ts",
-      "import": "./dist/dinero-v2.js",
-      "require": "./dist/dinero-v2.cjs"
-    }
-  },
-  "files": [
-    "dist/**/*",
-    "README.md",
-    "LICENSE"
-  ],
+  "name": "genkin-monorepo",
+  "private": true,
+  "workspaces": ["packages/*", "docs"],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "bun run --filter './packages/*' build",
+    "dev": "bun run --filter './packages/*' dev",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
     "bundle:analyze": "bundlemon --config bundlemon.config.js",
-    "bundle:size": "bun run build && bun run scripts/bundle-size.ts"
+    "docs:dev": "cd docs && bun run start",
+    "docs:build": "cd docs && bun run build",
+    "docs:serve": "cd docs && bun run serve"
   },
   "devDependencies": {
     "@dinero.js/currencies": "^2.0.0-alpha.14",
