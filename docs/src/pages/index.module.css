@@ -1,0 +1,88 @@
+/**
+ * CSS files with the .module.css suffix will be treated as CSS modules
+ * and scoped locally.
+ */
+
+.heroBanner {
+  padding: 4rem 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+@media screen and (max-width: 996px) {
+  .heroBanner {
+    padding: 2rem;
+  }
+}
+
+.heroDescription {
+  font-size: 1.2rem;
+  max-width: 600px;
+  margin: 0 auto 2rem;
+  line-height: 1.6;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.valueProposition {
+  padding: 4rem 0;
+  background-color: var(--ifm-color-emphasis-50);
+}
+
+.valueProposition h3 {
+  color: var(--ifm-color-primary);
+  margin-bottom: 1rem;
+}
+
+.codeExample {
+  padding: 4rem 0;
+}
+
+.codeExample .col:first-child {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.gettingStarted {
+  padding: 4rem 0;
+  background-color: var(--ifm-color-emphasis-50);
+}
+
+.installCard {
+  background: rgba(112, 112, 112, 0.18);
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  height: 100%;
+}
+
+.installCard h3 {
+  color: var(--ifm-color-primary);
+  margin-bottom: 1rem;
+}
+
+.installCard p {
+  margin-top: 1rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+@media screen and (max-width: 996px) {
+  .valueProposition,
+  .codeExample,
+  .gettingStarted {
+    padding: 2rem 0;
+  }
+
+  .installCard {
+    margin-bottom: 2rem;
+  }
+}
