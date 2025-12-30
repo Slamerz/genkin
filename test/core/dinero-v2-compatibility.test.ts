@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { genkin, Genkin } from '../../src/core/index.js';
-import { USD, createCurrency, getCurrencyConfig } from '../../src/currencies/index.js';
-import { add, subtract, multiply, divide, allocate } from '../../src/operations/arithmetic.js';
-import type { ScaledRatio } from '../../src/operations/arithmetic.js';
-import { equals, lessThan, greaterThan, isZero, isPositive, isNegative } from '../../src/operations/comparison.js';
+import { genkin, Genkin } from '@genkin/core';
+import { USD, createCurrency, getCurrencyConfig } from '@genkin/currencies';
+import { add, subtract, multiply, divide, allocate } from '@genkin/core';
+import type { ScaledRatio } from '@genkin/core';
+import { equals, lessThan, greaterThan, isZero, isPositive, isNegative } from '@genkin/core';
 import { dinero, toDecimal } from 'dinero.js';
 import { USD as USD_DINERO, EUR as EUR_DINERO, JPY as JPY_DINERO } from '@dinero.js/currencies';
 

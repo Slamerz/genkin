@@ -1,5 +1,5 @@
-import { createDinero, bigintCalculator } from '../../../src/dinero-v2/index.js';
-import type { DineroOptions, Dinero } from '../../../src/dinero-v2/index.js';
+import { createDinero, bigintCalculator } from '@genkin/dinero-v2';
+import type { DineroOptions, Dinero } from '@genkin/dinero-v2';
 
 // Create a bigint-based dinero factory using the generic createDinero
 const bigintDinero = createDinero({ calculator: bigintCalculator });

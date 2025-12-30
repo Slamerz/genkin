@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { USD, USD_CONFIG, createUSD } from '../../src/currencies/index.js';
-import { genkin } from '../../src/core/genkin.js';
+import { USD, USD_CONFIG, createUSD } from '@genkin/currencies';
+import { genkin } from '@genkin/core';
 
 describe('USD Currency Integration', () => {
   it('should work with different import styles', async () => {
     // Test importing from currencies module
-    const { USD: MainUSD } = await import('../../src/currencies/index.js');
+    const { USD: MainUSD } = await import('@genkin/currencies');
     expect(MainUSD).toBeDefined();
     expect(MainUSD.code).toBe('USD');
   });

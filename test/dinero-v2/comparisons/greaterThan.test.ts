@@ -1,13 +1,11 @@
 import { describe, expect, it } from "vitest";
 import Big from 'big.js';
-import { greaterThan } from '../../../src/dinero-v2/index.js';
-import { USD, EUR, MGA } from "../../../src/dinero-v2/currencies";
+import { greaterThan, USD, EUR, MGA } from '@genkin/dinero-v2';
 import { createBigintDinero } from "../utils/createBigintDinero.js";
 import { castToBigintCurrency } from "../utils/castToBigintCurrency.js";
 import { createBigjsDinero } from "../utils/createBigjsDinero.js";
 import { castToBigjsCurrency } from "../utils/castToBigjsCurrency.js";
 import { createNumberDinero } from "../utils/createNumberDinero.js";
-import '../../../src/currencies/index.js';
 
 describe('greaterThan', () => {
   describe('number', () => {

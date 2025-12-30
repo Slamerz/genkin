@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { genkin, Genkin } from "../src/index.js";
+import { genkin, Genkin } from "@genkin/core";
 
 describe('Genkin Main Module', () => {
   describe('Factory Function', () => {

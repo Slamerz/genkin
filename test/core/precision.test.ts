@@ -7,8 +7,8 @@ import {
   safeSubtract,
   safeMultiply,
   safeDivide,
-} from '../../src/core/precision.js';
-import { RoundingMode } from '../../src/core/currency.js';
+} from '@genkin/core';
+import { RoundingMode } from '@genkin/core';
 
 describe('Precision Utilities', () => {
   describe('Minor Units Conversion', () => {
