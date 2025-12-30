@@ -88,6 +88,6 @@ bun add @genkin/core @genkin/currencies @genkin/dinero @genkin/dinero-v2
 
 ## Community
 
-- [GitHub](https://github.com/genkin/genkin)
-- [Issues](https://github.com/genkin/genkin/issues)
+- [GitHub](https://github.com/Slamerz/genkin)
+- [Issues](https://github.com/Slamerz/genkin/issues)
 - [NPM](https://www.npmjs.com/org/genkin)
