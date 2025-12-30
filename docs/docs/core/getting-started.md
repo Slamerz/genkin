@@ -97,7 +97,6 @@ const currencyCode: CurrencyCode = 'USD';
 
 ## API Reference
 
-- [Genkin class](./api/genkin)
-- [Operations](./api/operations)
-- [Currencies](./api/currencies)
-- [Calculators](./api/calculators)
+- [Genkin class](../api/genkin-class)
+- [Operations](../api/operations)
+- [Types](../api/types)
