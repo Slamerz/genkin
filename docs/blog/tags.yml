@@ -1,19 +1,34 @@
-facebook:
-  label: Facebook
-  permalink: /facebook
-  description: Facebook tag description
-
-hello:
-  label: Hello
-  permalink: /hello
-  description: Hello tag description
-
 docusaurus:
   label: Docusaurus
   permalink: /docusaurus
   description: Docusaurus tag description
 
-hola:
-  label: Hola
-  permalink: /hola
-  description: Hola tag description
+core:
+  label: '@genkin/core'
+  permalink: /core
+  description: The core package of Genkin.
+
+currencies:
+  label: '@genkin/currencies'
+  permalink: /currencies
+  description: Various ISO 4217 currency definitions.
+
+dinero:
+  label: '@genkin/dinero'
+  permalink: /dinero
+  description: A drop-in replacement for Dinero.js v1.
+
+dinero-v2:
+  label: '@genkin/dinero-v2'
+  permalink: /dinero-v2
+  description: A drop-in replacement for Dinero.js v2.
+
+announcement:
+  label: Announcement
+  permalink: /announcement
+  description: Announcements about Genkin.js.
+
+update:
+  label: Update
+  permalink: /update
+  description: Updates about Genkin.js.
