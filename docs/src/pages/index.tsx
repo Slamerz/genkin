@@ -14,7 +14,12 @@ function HomepageHeader() {
 	return (
 		<header className={clsx("hero hero--primary", styles.heroBanner)}>
 			<div className="container">
-				<img src="/img/logo.svg" alt="Genkin Logo" width={100} height={100} />
+				<img
+					src="/genkin/img/logo.svg"
+					alt="Genkin Logo"
+					width={100}
+					height={100}
+				/>
 				<Heading as="h1" className="hero__title">
 					{siteConfig.title}
 				</Heading>
