@@ -1,6 +1,6 @@
 {
 	"name": "@genkin/core",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Core currency and number formatting/math library for Genkin",
 	"type": "module",
 	"main": "dist/index.cjs",
@@ -30,17 +30,17 @@
 		"arithmetic",
 		"typescript"
 	],
-	"author": "Genkin Team",
+	"author": "Slamerz",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/genkin/genkin",
+		"url": "https://github.com/Slamerz/genkin",
 		"directory": "packages/core"
 	},
 	"bugs": {
-		"url": "https://github.com/genkin/genkin/issues"
+		"url": "https://github.com/Slamerz/genkin/issues"
 	},
-	"homepage": "https://genkin.dev",
+	"homepage": "https://slamerz.github.io/genkin/",
 	"sideEffects": false,
 	"publishConfig": {
 		"access": "public"
