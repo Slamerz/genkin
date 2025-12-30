@@ -29,4 +29,4 @@ const gbpAmount = genkin(750, { currency: GBP }); // £7.50
 
 ## API
 
-See the [documentation](https://genkin.dev) for complete API reference.
+See the [documentation](https://slamerz.github.io/genkin/) for complete API reference.

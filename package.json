@@ -1,35 +1,45 @@
 {
-  "name": "genkin-monorepo",
-  "private": true,
-  "workspaces": ["packages/*", "docs"],
-  "scripts": {
-    "build": "bun run --filter './packages/*' build",
-    "dev": "bun run --filter './packages/*' dev",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui",
-    "bundle:analyze": "bundlemon --config bundlemon.config.js",
-    "docs:dev": "cd docs && bun run start",
-    "docs:build": "cd docs && bun run build",
-    "docs:serve": "cd docs && bun run serve"
-  },
-  "devDependencies": {
-    "@dinero.js/currencies": "^2.0.0-alpha.14",
-    "@types/big.js": "^6.2.2",
-    "@types/bun": "latest",
-    "@types/gzip-size": "^5.1.1",
-    "@types/node": "^24.4.0",
-    "@vitest/coverage-v8": "3.2.4",
-    "@vitest/ui": "3.2.4",
-    "big.js": "^7.0.1",
-    "bundlemon": "^3.1.0",
-    "dinero-og-v1": "npm:dinero.js@^1.9.1",
-    "dinero.js": "^2.0.0-alpha.14",
-    "gzip-size": "^7.0.0",
-    "tsup": "^8.5.1",
-    "vitest": "^3.2.4"
-  },
-  "peerDependencies": {
-    "typescript": "^5.8.3"
-  }
+	"name": "genkin-monorepo",
+	"private": true,
+	"workspaces": [
+		"packages/*",
+		"docs"
+	],
+	"scripts": {
+		"build": "bun run --filter './packages/*' build",
+		"dev": "bun run --filter './packages/*' dev",
+		"test": "vitest run",
+		"test:coverage": "vitest run --coverage",
+		"test:ui": "vitest --ui",
+		"bundle:analyze": "bundlemon --config bundlemon.config.js",
+		"docs:dev": "cd docs && bun run start",
+		"docs:build": "cd docs && bun run build",
+		"docs:serve": "cd docs && bun run serve",
+		"npm:login": "bunx npm login",
+		"npm:whoami": "bun pm whoami",
+		"npm:publish:core": "cd packages/core && bun publish",
+		"npm:publish:currencies": "cd packages/currencies && bun publish",
+		"npm:publish:dinero": "cd packages/dinero && bun publish",
+		"npm:publish:dinero-v2": "cd packages/dinero-v2 && bun publish",
+		"npm:publish:all": "bun run npm:publish:core && bun run npm:publish:currencies && bun run npm:publish:dinero && bun run npm:publish:dinero-v2"
+	},
+	"devDependencies": {
+		"@dinero.js/currencies": "^2.0.0-alpha.14",
+		"@types/big.js": "^6.2.2",
+		"@types/bun": "latest",
+		"@types/gzip-size": "^5.1.1",
+		"@types/node": "^24.4.0",
+		"@vitest/coverage-v8": "3.2.4",
+		"@vitest/ui": "3.2.4",
+		"big.js": "^7.0.1",
+		"bundlemon": "^3.1.0",
+		"dinero-og-v1": "npm:dinero.js@^1.9.1",
+		"dinero.js": "^2.0.0-alpha.14",
+		"gzip-size": "^7.0.0",
+		"tsup": "^8.5.1",
+		"vitest": "^3.2.4"
+	},
+	"peerDependencies": {
+		"typescript": "^5.8.3"
+	}
 }

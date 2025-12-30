@@ -44,4 +44,4 @@ const amount = Dinero({ amount: 1000, currency: USD });
 
 ## API
 
-See the [documentation](https://genkin.dev) for complete API reference.
+See the [documentation](https://slamerz.github.io/genkin/) for complete API reference.

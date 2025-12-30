@@ -27,4 +27,4 @@ const total = add(price, genkin(500, { currency: USD })); // $15.00
 
 ## API
 
-See the [documentation](https://genkin.dev) for complete API reference.
+See the [documentation](https://slamerz.github.io/genkin/) for complete API reference.
