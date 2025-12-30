@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { genkin } from '../../src/core/index.js';
-import { add, subtract, multiply, divide, abs, negate, allocate } from '../../src/operations/arithmetic.js';
-import type { ScaledRatio } from '../../src/operations/arithmetic.js';
-import { USD } from '../../src/currencies/index.js';
-import { createCurrency, getCurrencyConfig } from '../../src/core/currency.js';
+import { genkin } from '@genkin/core';
+import { add, subtract, multiply, divide, abs, negate, allocate } from '@genkin/core';
+import type { ScaledRatio } from '@genkin/core';
+import { USD } from '@genkin/currencies';
+import { createCurrency, getCurrencyConfig } from '@genkin/core';
 
 describe('Arithmetic Operations', () => {
   // Create currency objects for testing

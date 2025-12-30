@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import Big from 'big.js';
-import { haveSameCurrency } from '../../../src/dinero-v2/index.js';
-import { USD, EUR } from "../../../src/dinero-v2/currencies";
+import { haveSameCurrency, USD, EUR } from '@genkin/dinero-v2';
 import { createBigintDinero } from "../utils/createBigintDinero.js";
 import { castToBigintCurrency } from "../utils/castToBigintCurrency.js";
 import { createBigjsDinero } from "../utils/createBigjsDinero.js";

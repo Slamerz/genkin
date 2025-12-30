@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 // Test different import strategies
-import { genkin, add, subtract, multiply, divide, equals, RoundingMode } from '../src/index.js';
-import { Genkin } from '../src/core/genkin.js';
-import * as Core from '../src/core/index.js';
-import * as Operations from '../src/operations/index.js';
+import { genkin, add, subtract, multiply, divide, equals, RoundingMode } from '@genkin/core';
+import { Genkin } from '@genkin/core';
+import * as Core from '@genkin/core';
+import * as Operations from '@genkin/core';
 
 describe('Genkin.js Integration Tests', () => {
   describe('Import Strategies', () => {

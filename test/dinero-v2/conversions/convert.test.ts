@@ -1,222 +1,227 @@
+import {
+	convert,
+	EUR,
+	IQD,
+	MGA,
+	MRU,
+	toSnapshot,
+	USD,
+} from "@genkin/dinero-v2";
+import Big from "big.js";
 import { describe, expect, it } from "vitest";
-import Big from 'big.js';
-import { toSnapshot, convert } from '../../../src/dinero-v2/index.js';
-import { USD, EUR, MGA, MRU, IQD } from "../../../src/dinero-v2/currencies";
-import { createBigintDinero } from "../utils/createBigintDinero.js";
 import { castToBigintCurrency } from "../utils/castToBigintCurrency.js";
-import { createBigjsDinero } from "../utils/createBigjsDinero.js";
 import { castToBigjsCurrency } from "../utils/castToBigjsCurrency.js";
+import { createBigintDinero } from "../utils/createBigintDinero.js";
+import { createBigjsDinero } from "../utils/createBigjsDinero.js";
 import { createNumberDinero } from "../utils/createNumberDinero.js";
-import '../../../src/currencies/index.js';
 
+describe("convert", () => {
+	describe("number", () => {
+		const dinero = createNumberDinero;
 
-describe('convert', () => {
-  describe('number', () => {
-    const dinero = createNumberDinero;
+		describe("decimal currencies", () => {
+			it("converts a Dinero object to another currency", () => {
+				const d = dinero({ amount: 500, currency: USD });
 
-    describe('decimal currencies', () => {
-      it('converts a Dinero object to another currency', () => {
-        const d = dinero({ amount: 500, currency: USD });
+				const converted = convert(d, EUR, {
+					EUR: {
+						amount: 89,
+						scale: 2,
+					},
+				});
 
-        const converted = convert(d, EUR, {
-          EUR: {
-            amount: 89,
-            scale: 2,
-          },
-        });
+				expect(toSnapshot(converted)).toEqual({
+					amount: 44500,
+					currency: EUR,
+					scale: 4,
+				});
+			});
+			it("uses the destination currency's exponent as scale", () => {
+				const d = dinero({ amount: 500, currency: USD });
 
-        expect(toSnapshot(converted)).toEqual({
-          amount: 44500,
-          currency: EUR,
-          scale: 4,
-        });
-      });
-      it("uses the destination currency's exponent as scale", () => {
-        const d = dinero({ amount: 500, currency: USD });
+				const converted = convert(d, IQD, {
+					IQD: 1199,
+				});
 
-        const converted = convert(d, IQD, {
-          IQD: 1199,
-        });
+				expect(toSnapshot(converted)).toEqual({
+					amount: 5995000,
+					currency: IQD,
+					scale: 3,
+				});
+			});
+		});
+		describe("non-decimal currencies", () => {
+			it("converts a Dinero object to another currency", () => {
+				const d = dinero({ amount: 1, currency: MRU });
 
-        expect(toSnapshot(converted)).toEqual({
-          amount: 5995000,
-          currency: IQD,
-          scale: 3,
-        });
-      });
-    });
-    describe('non-decimal currencies', () => {
-      it('converts a Dinero object to another currency', () => {
-        const d = dinero({ amount: 1, currency: MRU });
+				const converted = convert(d, MGA, {
+					MGA: 108,
+				});
 
-        const converted = convert(d, MGA, {
-          MGA: 108,
-        });
+				expect(toSnapshot(converted)).toEqual({
+					amount: 108,
+					currency: MGA,
+					scale: 1,
+				});
+			});
+			it("converts to the safest scale", () => {
+				const d = dinero({ amount: 100, currency: USD });
 
-        expect(toSnapshot(converted)).toEqual({
-          amount: 108,
-          currency: MGA,
-          scale: 1,
-        });
-      });
-      it('converts to the safest scale', () => {
-        const d = dinero({ amount: 100, currency: USD });
+				const converted = convert(d, MGA, {
+					MGA: {
+						amount: 3912566,
+						scale: 3,
+					},
+				});
 
-        const converted = convert(d, MGA, {
-          MGA: {
-            amount: 3912566,
-            scale: 3,
-          },
-        });
+				expect(toSnapshot(converted)).toEqual({
+					amount: 391256600,
+					currency: MGA,
+					scale: 5,
+				});
+			});
+		});
+	});
+	describe("bigint", () => {
+		const dinero = createBigintDinero;
+		const bigintUSD = castToBigintCurrency(USD);
+		const bigintEUR = castToBigintCurrency(EUR);
+		const bigintIQD = castToBigintCurrency(IQD);
+		const bigintMGA = castToBigintCurrency(MGA);
+		const bigintMRU = castToBigintCurrency(MRU);
 
-        expect(toSnapshot(converted)).toEqual({
-          amount: 391256600,
-          currency: MGA,
-          scale: 5,
-        });
-      });
-    });
-  });
-  describe('bigint', () => {
-    const dinero = createBigintDinero;
-    const bigintUSD = castToBigintCurrency(USD);
-    const bigintEUR = castToBigintCurrency(EUR);
-    const bigintIQD = castToBigintCurrency(IQD);
-    const bigintMGA = castToBigintCurrency(MGA);
-    const bigintMRU = castToBigintCurrency(MRU);
+		describe("decimal currencies", () => {
+			it("converts a Dinero object to another currency", () => {
+				const d = dinero({ amount: 500n, currency: bigintUSD });
 
-    describe('decimal currencies', () => {
-      it('converts a Dinero object to another currency', () => {
-        const d = dinero({ amount: 500n, currency: bigintUSD });
+				const converted = convert(d, bigintEUR, {
+					EUR: {
+						amount: 89n,
+						scale: 2n,
+					},
+				});
 
-        const converted = convert(d, bigintEUR, {
-          EUR: {
-            amount: 89n,
-            scale: 2n,
-          },
-        });
+				expect(toSnapshot(converted)).toEqual({
+					amount: 44500n,
+					currency: bigintEUR,
+					scale: 4n,
+				});
+			});
+			it("uses the destination currency's exponent as scale", () => {
+				const d = dinero({ amount: 500n, currency: bigintUSD });
 
-        expect(toSnapshot(converted)).toEqual({
-          amount: 44500n,
-          currency: bigintEUR,
-          scale: 4n,
-        });
-      });
-      it("uses the destination currency's exponent as scale", () => {
-        const d = dinero({ amount: 500n, currency: bigintUSD });
+				const converted = convert(d, bigintIQD, {
+					IQD: 1199n,
+				});
 
-        const converted = convert(d, bigintIQD, {
-          IQD: 1199n,
-        });
+				expect(toSnapshot(converted)).toEqual({
+					amount: 5995000n,
+					currency: bigintIQD,
+					scale: 3n,
+				});
+			});
+		});
+		describe("non-decimal currencies", () => {
+			it("converts a Dinero object to another currency", () => {
+				const d = dinero({ amount: 1n, currency: bigintMRU });
 
-        expect(toSnapshot(converted)).toEqual({
-          amount: 5995000n,
-          currency: bigintIQD,
-          scale: 3n,
-        });
-      });
-    });
-    describe('non-decimal currencies', () => {
-      it('converts a Dinero object to another currency', () => {
-        const d = dinero({ amount: 1n, currency: bigintMRU });
+				const converted = convert(d, bigintMGA, {
+					MGA: 108n,
+				});
 
-        const converted = convert(d, bigintMGA, {
-          MGA: 108n,
-        });
+				expect(toSnapshot(converted)).toEqual({
+					amount: 108n,
+					currency: bigintMGA,
+					scale: 1n,
+				});
+			});
+			it("converts to the safest scale", () => {
+				const d = dinero({ amount: 100n, currency: bigintUSD });
 
-        expect(toSnapshot(converted)).toEqual({
-          amount: 108n,
-          currency: bigintMGA,
-          scale: 1n,
-        });
-      });
-      it('converts to the safest scale', () => {
-        const d = dinero({ amount: 100n, currency: bigintUSD });
+				const converted = convert(d, bigintMGA, {
+					MGA: {
+						amount: 3912566n,
+						scale: 3n,
+					},
+				});
 
-        const converted = convert(d, bigintMGA, {
-          MGA: {
-            amount: 3912566n,
-            scale: 3n,
-          },
-        });
+				expect(toSnapshot(converted)).toEqual({
+					amount: 391256600n,
+					currency: bigintMGA,
+					scale: 5n,
+				});
+			});
+		});
+	});
+	describe("Big.js", () => {
+		const dinero = createBigjsDinero;
+		const bigjsUSD = castToBigjsCurrency(USD);
+		const bigjsEUR = castToBigjsCurrency(EUR);
+		const bigjsIQD = castToBigjsCurrency(IQD);
+		const bigjsMGA = castToBigjsCurrency(MGA);
+		const bigjsMRU = castToBigjsCurrency(MRU);
 
-        expect(toSnapshot(converted)).toEqual({
-          amount: 391256600n,
-          currency: bigintMGA,
-          scale: 5n,
-        });
-      });
-    });
-  });
-  describe('Big.js', () => {
-    const dinero = createBigjsDinero;
-    const bigjsUSD = castToBigjsCurrency(USD);
-    const bigjsEUR = castToBigjsCurrency(EUR);
-    const bigjsIQD = castToBigjsCurrency(IQD);
-    const bigjsMGA = castToBigjsCurrency(MGA);
-    const bigjsMRU = castToBigjsCurrency(MRU);
+		describe("decimal currencies", () => {
+			it("converts a Dinero object to another currency", () => {
+				const d = dinero({ amount: new Big(500), currency: bigjsUSD });
 
-    describe('decimal currencies', () => {
-      it('converts a Dinero object to another currency', () => {
-        const d = dinero({ amount: new Big(500), currency: bigjsUSD });
+				const converted = convert(d, bigjsEUR, {
+					EUR: {
+						amount: new Big(89),
+						scale: new Big(2),
+					},
+				});
 
-        const converted = convert(d, bigjsEUR, {
-          EUR: {
-            amount: new Big(89),
-            scale: new Big(2),
-          },
-        });
+				expect(toSnapshot(converted)).toEqual({
+					amount: new Big(44500),
+					currency: bigjsEUR,
+					scale: new Big(4),
+				});
+			});
+			it("uses the destination currency's exponent as scale", () => {
+				const d = dinero({ amount: new Big(500), currency: bigjsUSD });
 
-        expect(toSnapshot(converted)).toEqual({
-          amount: new Big(44500),
-          currency: bigjsEUR,
-          scale: new Big(4),
-        });
-      });
-      it("uses the destination currency's exponent as scale", () => {
-        const d = dinero({ amount: new Big(500), currency: bigjsUSD });
+				const converted = convert(d, bigjsIQD, {
+					IQD: new Big(1199),
+				});
 
-        const converted = convert(d, bigjsIQD, {
-          IQD: new Big(1199),
-        });
+				expect(toSnapshot(converted)).toEqual({
+					amount: new Big(5995000),
+					currency: bigjsIQD,
+					scale: new Big(3),
+				});
+			});
+		});
+		describe("non-decimal currencies", () => {
+			it("converts a Dinero object to another currency", () => {
+				const d = dinero({ amount: new Big(1), currency: bigjsMRU });
 
-        expect(toSnapshot(converted)).toEqual({
-          amount: new Big(5995000),
-          currency: bigjsIQD,
-          scale: new Big(3),
-        });
-      });
-    });
-    describe('non-decimal currencies', () => {
-      it('converts a Dinero object to another currency', () => {
-        const d = dinero({ amount: new Big(1), currency: bigjsMRU });
+				const converted = convert(d, bigjsMGA, {
+					MGA: new Big(108),
+				});
 
-        const converted = convert(d, bigjsMGA, {
-          MGA: new Big(108),
-        });
+				expect(toSnapshot(converted)).toEqual({
+					amount: new Big(108),
+					currency: bigjsMGA,
+					scale: new Big(1),
+				});
+			});
+			it("converts to the safest scale", () => {
+				const d = dinero({ amount: new Big(100), currency: bigjsUSD });
 
-        expect(toSnapshot(converted)).toEqual({
-          amount: new Big(108),
-          currency: bigjsMGA,
-          scale: new Big(1),
-        });
-      });
-      it('converts to the safest scale', () => {
-        const d = dinero({ amount: new Big(100), currency: bigjsUSD });
+				const converted = convert(d, bigjsMGA, {
+					MGA: {
+						amount: new Big(3912566),
+						scale: new Big(3),
+					},
+				});
 
-        const converted = convert(d, bigjsMGA, {
-          MGA: {
-            amount: new Big(3912566),
-            scale: new Big(3),
-          },
-        });
-
-        expect(toSnapshot(converted)).toEqual({
-          amount: new Big(391256600),
-          currency: bigjsMGA,
-          scale: new Big(5),
-        });
-      });
-    });
-  });
+				expect(toSnapshot(converted)).toEqual({
+					amount: new Big(391256600),
+					currency: bigjsMGA,
+					scale: new Big(5),
+				});
+			});
+		});
+	});
 });

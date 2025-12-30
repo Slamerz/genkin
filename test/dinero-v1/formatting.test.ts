@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import  Dinero  from '../../src/dinero-v1/index.js';
+import  Dinero  from '@genkin/dinero';
 import DineroOg from 'dinero-og-v1';
 
 describe('Enhanced Formatting Tests', () => {

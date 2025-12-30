@@ -24,12 +24,13 @@ export function assert(condition: boolean, message: string): void {
   }
 }
 
-function toDineroCurrency<T>(currency: GenkinCurrency, scale: T, originalExponent?: T, convertToType?: (n: number) => T): Currency<T> {
+function toDineroCurrency<T>(currency: GenkinCurrency, scale: T, originalExponent?: T, originalBase?: T | readonly T[], convertToType?: (n: number) => T): Currency<T> {
   // For generic types, use the converter if provided
   const toT = convertToType ?? ((n: number) => n as unknown as T);
   return {
     code: currency.code,
-    base: toT(currency.base ?? 10),
+    // Use original base if provided, otherwise derive from currency base
+    base: originalBase ?? toT(currency.base ?? 10),
     // Use original exponent if provided, otherwise derive from currency precision
     exponent: originalExponent ?? toT(currency.precision),
   };
@@ -77,21 +78,44 @@ class GenericDineroWrapper<T> implements Dinero<T> {
   private readonly _calculator: GenkinCalculator<T>;
   public readonly _originalExponent: T;
   public readonly _originalBase?: T | readonly T[];
+  public readonly _originalScale?: T;
   public readonly __isGenericDineroWrapper = true as const;
 
-  constructor(genkin: GenkinInstance<T>, calculator: GenkinCalculator<T>, originalExponent?: T, originalBase?: T | readonly T[]) {
+  constructor(genkin: GenkinInstance<T>, calculator: GenkinCalculator<T>, originalExponent?: T, originalBase?: T | readonly T[], originalScale?: T) {
     this._genkin = genkin;
     this._calculator = calculator;
-    // Store original currency exponent (defaults to currency precision converted to type T)
-    this._originalExponent = originalExponent ?? this._intToT(genkin.currency.precision);
     // Store original base (may be an array for multi-base currencies)
     this._originalBase = originalBase;
+    // Store original scale to preserve the same constructor/type
+    this._originalScale = originalScale;
+    // Store original currency exponent (defaults to currency precision converted to type T)
+    // Note: we set _originalScale before this so _intToT can use it as reference
+    this._originalExponent = originalExponent ?? this._intToT(genkin.currency.precision);
   }
 
   /**
-   * Convert an integer to type T using the calculator
+   * Convert an integer to type T using the calculator, preserving the constructor from original values
    */
   private _intToT(n: number): T {
+    // Try to create the value using the same constructor as the original values
+    // This ensures deep equality works correctly when comparing Big.js instances
+    const originalValue = this._originalScale ?? this._originalExponent ?? 
+      (Array.isArray(this._originalBase) ? this._originalBase[0] : this._originalBase);
+    
+    if (originalValue !== undefined && typeof originalValue === 'object' && originalValue !== null) {
+      const ctor = (originalValue as any).constructor;
+      if (typeof ctor === 'function') {
+        try {
+          // Use the constructor from the original value to preserve the same Big.js instance type
+          const result = new ctor(n);
+          return result as T;
+        } catch (e) {
+          // Fall through to calculator-based approach
+        }
+      }
+    }
+    
+    // Fallback: use the calculator's methods
     let result = this._calculator.zero();
     for (let i = 0; i < Math.abs(n); i++) {
       result = this._calculator.increment(result);
@@ -100,6 +124,44 @@ class GenericDineroWrapper<T> implements Dinero<T> {
       result = this._calculator.subtract(this._calculator.zero(), result);
     }
     return result;
+  }
+
+  /**
+   * Convert any value to use the original constructor type
+   * This ensures that values returned from operations use the same Big.js constructor as the input
+   */
+  private _convertToOriginalType(value: T): T {
+    // For primitive types, no conversion needed
+    if (typeof value !== 'object' || value === null) {
+      return value;
+    }
+    
+    // Get a reference to an original value to extract its constructor
+    const originalValue = this._originalScale ?? this._originalExponent ?? 
+      (Array.isArray(this._originalBase) ? this._originalBase[0] : this._originalBase);
+    
+    // If we don't have an original value, return as-is
+    if (originalValue === undefined || typeof originalValue !== 'object' || originalValue === null) {
+      return value;
+    }
+    
+    const originalCtor = (originalValue as any).constructor;
+    const valueCtor = (value as any).constructor;
+    
+    // Only convert if constructors are different and we have a valid constructor
+    if (originalCtor !== valueCtor && typeof originalCtor === 'function') {
+      try {
+        // Convert the value to a string representation, then create new instance
+        const valueAsString = String(value);
+        return new originalCtor(valueAsString) as T;
+      } catch (e) {
+        // If conversion fails, return the value as-is
+        return value;
+      }
+    }
+    
+    // If constructors are the same, return the value as-is
+    return value;
   }
 
   get calculator(): Calculator<T> {
@@ -120,13 +182,15 @@ class GenericDineroWrapper<T> implements Dinero<T> {
   get currency(): Currency<T> {
     return toDineroCurrency(
       this._genkin.currency, 
-      this._intToT(this._genkin.precision), 
+      this.scale, 
       this._originalExponent,
+      this._originalBase,
       (n) => this._intToT(n)
     );
   }
 
   get scale(): T {
+    // Always create a value with the correct constructor based on the current precision
     return this._intToT(this._genkin.precision);
   }
 
@@ -139,19 +203,22 @@ class GenericDineroWrapper<T> implements Dinero<T> {
       precision,
       isMinorUnits: true,
     });
-    return new GenericDineroWrapper(genkinInstance, this._calculator, options.currency.exponent);
+    return new GenericDineroWrapper(genkinInstance, this._calculator, options.currency.exponent, options.currency.base, options.scale ?? options.currency.exponent);
   }
 
   toJSON(): DineroSnapshot<T> {
+    // Get scale, preserving original constructor if possible
+    const scaleValue = this.scale;
     return {
-      amount: this._genkin.minorUnits,
+      amount: this._convertToOriginalType(this._genkin.minorUnits),
       currency: toDineroCurrency(
         this._genkin.currency, 
-        this._intToT(this._genkin.precision), 
+        scaleValue, 
         this._originalExponent,
+        this._originalBase,
         (n) => this._intToT(n)
       ),
-      scale: this._intToT(this._genkin.precision),
+      scale: scaleValue,
     };
   }
 }
@@ -244,8 +311,8 @@ export function createDinero<T>(options: CreateDineroOptions<T>): DineroFactory<
       isMinorUnits: true,
     });
 
-    // Pass the original currency exponent and base
-    return new GenericDineroWrapper(genkinInstance, calculator, currency.exponent, currency.base);
+    // Pass the original currency exponent, base, and scale to preserve constructors
+    return new GenericDineroWrapper(genkinInstance, calculator, currency.exponent, currency.base, scale ?? currency.exponent);
   };
 }
 
@@ -584,8 +651,12 @@ export function add<T>(augend: Dinero<T>, addend: Dinero<T>): Dinero<T> {
     const calculator = augendWrapper._genkin.calculator;
     const ops = createArithmeticOperations(calculator);
     const result = ops.add(augendWrapper._genkin, addendWrapper._genkin);
-    // Preserve the original currency exponent
-    return new GenericDineroWrapper(result, calculator, augendWrapper._originalExponent) as Dinero<T>;
+    // Preserve the original currency exponent, base, and scale
+    // After normalization, result precision may be the higher of the two inputs
+    const resultScale = result.precision === augendWrapper._genkin.precision 
+      ? augendWrapper._originalScale 
+      : (result.precision === addendWrapper._genkin.precision ? addendWrapper._originalScale : undefined);
+    return new GenericDineroWrapper(result, calculator, augendWrapper._originalExponent, augendWrapper._originalBase, resultScale) as Dinero<T>;
   }
 
   throw new Error('Invalid Dinero objects');
@@ -607,7 +678,11 @@ export function subtract<T>(minuend: Dinero<T>, subtrahend: Dinero<T>): Dinero<T
     const calculator = minuendWrapper._genkin.calculator;
     const ops = createArithmeticOperations(calculator);
     const result = ops.subtract(minuendWrapper._genkin, subtrahendWrapper._genkin);
-    return new GenericDineroWrapper(result, calculator, minuendWrapper._originalExponent) as Dinero<T>;
+    // Preserve the original currency exponent, base, and scale
+    const resultScale = result.precision === minuendWrapper._genkin.precision 
+      ? minuendWrapper._originalScale 
+      : (result.precision === subtrahendWrapper._genkin.precision ? subtrahendWrapper._originalScale : undefined);
+    return new GenericDineroWrapper(result, calculator, minuendWrapper._originalExponent, minuendWrapper._originalBase, resultScale) as Dinero<T>;
   }
 
   throw new Error('Invalid Dinero objects');
@@ -662,7 +737,11 @@ export function multiply<T>(multiplicand: Dinero<T>, multiplier: ScaledAmount<T>
     }
     
     const result = ops.multiply(multiplicandWrapper._genkin, convertedMultiplier);
-    return new GenericDineroWrapper(result, calculator, multiplicandWrapper._originalExponent) as Dinero<T>;
+    // Preserve the original currency exponent, base, and scale (scale may change if multiplier has scale)
+    const resultScale = result.precision === multiplicandWrapper._genkin.precision 
+      ? multiplicandWrapper._originalScale 
+      : multiplicandWrapper._intToT(result.precision);
+    return new GenericDineroWrapper(result, calculator, multiplicandWrapper._originalExponent, multiplicandWrapper._originalBase, resultScale) as Dinero<T>;
   }
 
   throw new Error('Invalid Dinero object');
@@ -831,7 +910,9 @@ export function allocate<T>(dineroObject: Dinero<T>, ratios: (T | { amount: T; s
     
     // Allocate using the normalized ratios (just the amounts)
     const results = ops.allocate(scaledGenkin, normalizedRatios.map(r => r.amount));
-    return results.map(result => new GenericDineroWrapper(result, calculator, exponent)) as Dinero<T>[];
+    // For the new wrappers, pass the original exponent/base so they can create proper scale values
+    // Don't pass a specific scale value - let each wrapper create its own based on its precision
+    return results.map(result => new GenericDineroWrapper(result, calculator, exponent, dineroWrapper._originalBase, undefined)) as Dinero<T>[];
   }
 
   throw new Error('Invalid Dinero object');
@@ -974,7 +1055,11 @@ export function maximum<T>(dineroObjects: ReadonlyArray<Dinero<T>>): Dinero<T> {
     const genkins = wrappers.map(w => w._genkin);
     const maxGenkin = ops.maximum(genkins);
     const originalExponent = wrappers[0]._originalExponent;
-    return new GenericDineroWrapper(maxGenkin, calculator, originalExponent) as Dinero<T>;
+    const originalBase = wrappers[0]._originalBase;
+    // Find the wrapper that corresponds to the max to get its original scale
+    const maxWrapperIdx = genkins.findIndex(g => g === maxGenkin);
+    const originalScale = maxWrapperIdx >= 0 ? wrappers[maxWrapperIdx]._originalScale : undefined;
+    return new GenericDineroWrapper(maxGenkin, calculator, originalExponent, originalBase, originalScale) as Dinero<T>;
   }
 
   throw new Error('Invalid Dinero objects');
@@ -1195,7 +1280,8 @@ export function convert<T>(
       : rateAmount;
     
     const result = ops.convert(dineroWrapper._genkin, targetCurrencyConfig, convertRate);
-    return new GenericDineroWrapper(result, calculator, newCurrency.exponent) as Dinero<T>;
+    // For convert, use the new currency's exponent and base
+    return new GenericDineroWrapper(result, calculator, newCurrency.exponent, newCurrency.base, newCurrency.exponent) as Dinero<T>;
   }
 
   throw new Error('Invalid Dinero object');
@@ -1229,7 +1315,19 @@ export function normalizeScale<T>(dineroObjects: ReadonlyArray<Dinero<T>>): Dine
     const genkins = wrappers.map(w => w._genkin);
     const normalizedGenkins = ops.normalizeScale(genkins);
     const originalExponent = wrappers[0]._originalExponent;
-    return normalizedGenkins.map(genkin => new GenericDineroWrapper(genkin, calculator, originalExponent)) as Dinero<T>[];
+    const originalBase = wrappers[0]._originalBase;
+    // Find the highest scale among the input wrappers
+    const highestScaleWrapper = wrappers.reduce((highest, curr) => 
+      curr._genkin.precision > highest._genkin.precision ? curr : highest
+    );
+    const highestOriginalScale = highestScaleWrapper._originalScale;
+    return normalizedGenkins.map((genkin, i) => {
+      // If this genkin's precision matches the highest, use that wrapper's original scale
+      const originalScale = genkin.precision === highestScaleWrapper._genkin.precision 
+        ? highestOriginalScale 
+        : undefined;
+      return new GenericDineroWrapper(genkin, calculator, originalExponent, originalBase, originalScale);
+    }) as Dinero<T>[];
   }
 
   throw new Error('Invalid Dinero objects');
@@ -1363,7 +1461,8 @@ export function transformScale<T>(
       isMinorUnits: true,
     });
 
-    return new GenericDineroWrapper(newGenkin, calculator, wrapper._originalExponent) as Dinero<T>;
+    // Use the newScale parameter as the original scale (it preserves the constructor)
+    return new GenericDineroWrapper(newGenkin, calculator, wrapper._originalExponent, wrapper._originalBase, newScale) as Dinero<T>;
   }
 
   throw new Error('Invalid Dinero object');
@@ -1437,27 +1536,15 @@ export function trimScale<T>(dineroObject: Dinero<T>): Dinero<T> {
     // Get the currency's base (default to 10 for decimal currencies)
     const baseNum = wrapper._genkin.currency.base ?? 10;
     
-    // Helper to convert a number to the calculator's type
-    function intFromNumber(n: number): T {
-      let result = calculator.zero();
-      for (let i = 0; i < Math.abs(n); i++) {
-        result = calculator.increment(result);
-      }
-      if (n < 0) {
-        result = calculator.subtract(calculator.zero(), result);
-      }
-      return result;
-    }
-    
     const zero = calculator.zero();
-    const base = intFromNumber(baseNum);
+    const base = wrapper._intToT(baseNum);
     
     // Handle zero amount - return with currency exponent as scale
     if (calculator.compare(amount, zero) === 0) {
       if (currentScale === currencyExponent) {
         return dineroObject;
       }
-      return transformScale(dineroObject, intFromNumber(currencyExponent));
+      return transformScale(dineroObject, wrapper._intToT(currencyExponent));
     }
     
     // Count trailing zeros
@@ -1485,7 +1572,7 @@ export function trimScale<T>(dineroObject: Dinero<T>): Dinero<T> {
       return dineroObject;
     }
     
-    return transformScale(dineroObject, intFromNumber(newScale));
+    return transformScale(dineroObject, wrapper._intToT(newScale));
   }
 
   throw new Error('Invalid Dinero object');
@@ -1520,8 +1607,9 @@ export type {
 export {
   numberCalculator,
   bigintCalculator,
-  bigjsCalculator
+  // bigjsCalculator removed from core - users should create their own
 } from '@genkin/core';
+
 
 // Export currencies
 export * from './currencies.js';

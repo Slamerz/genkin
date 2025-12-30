@@ -1,145 +1,144 @@
+import { EUR, multiply, toSnapshot, USD } from "@genkin/dinero-v2";
+import Big from "big.js";
 import { describe, expect, it } from "vitest";
-import Big from 'big.js';
-import { toSnapshot, multiply} from '../../../src/dinero-v2/index.js';
-import { USD, EUR } from "../../../src/dinero-v2/currencies";
-import { createBigintDinero } from "../utils/createBigintDinero.js";
 import { castToBigintCurrency } from "../utils/castToBigintCurrency.js";
-import { createBigjsDinero } from "../utils/createBigjsDinero.js";
 import { castToBigjsCurrency } from "../utils/castToBigjsCurrency.js";
+import { createBigintDinero } from "../utils/createBigintDinero.js";
+import { createBigjsDinero } from "../utils/createBigjsDinero.js";
 import { createNumberDinero } from "../utils/createNumberDinero.js";
 
-describe('multiply', () => {
-  describe('number', () => {
-    const dinero = createNumberDinero;
+describe("multiply", () => {
+	describe("number", () => {
+		const dinero = createNumberDinero;
 
-    it('multiplies positive Dinero objects', () => {
-      const d = dinero({ amount: 400, currency: USD });
+		it("multiplies positive Dinero objects", () => {
+			const d = dinero({ amount: 400, currency: USD });
 
-      expect(toSnapshot(multiply(d, 4))).toEqual({
-        amount: 1600,
-        scale: 2,
-        currency: USD,
-      });
-      expect(toSnapshot(multiply(d, -1))).toEqual({
-        amount: -400,
-        scale: 2,
-        currency: USD,
-      });
-    });
-    it('multiplies negative Dinero objects', () => {
-      const d = dinero({ amount: -400, currency: USD });
+			expect(toSnapshot(multiply(d, 4))).toEqual({
+				amount: 1600,
+				scale: 2,
+				currency: USD,
+			});
+			expect(toSnapshot(multiply(d, -1))).toEqual({
+				amount: -400,
+				scale: 2,
+				currency: USD,
+			});
+		});
+		it("multiplies negative Dinero objects", () => {
+			const d = dinero({ amount: -400, currency: USD });
 
-      expect(toSnapshot(multiply(d, 4))).toEqual({
-        amount: -1600,
-        scale: 2,
-        currency: USD,
-      });
-      expect(toSnapshot(multiply(d, 1))).toEqual({
-        amount: -400,
-        scale: 2,
-        currency: USD,
-      });
-    });
-    it('converts the multiplied amount to the safest scale', () => {
-      const d = dinero({ amount: 401, currency: USD });
+			expect(toSnapshot(multiply(d, 4))).toEqual({
+				amount: -1600,
+				scale: 2,
+				currency: USD,
+			});
+			expect(toSnapshot(multiply(d, 1))).toEqual({
+				amount: -400,
+				scale: 2,
+				currency: USD,
+			});
+		});
+		it("converts the multiplied amount to the safest scale", () => {
+			const d = dinero({ amount: 401, currency: USD });
 
-      const snapshot = toSnapshot(multiply(d, { amount: 2001, scale: 3 }));
+			const snapshot = toSnapshot(multiply(d, { amount: 2001, scale: 3 }));
 
-      expect(snapshot).toEqual({
-        amount: 802401,
-        scale: 5,
-        currency: USD,
-      });
-    });
-  });
-  describe('bigint', () => {
-    const dinero = createBigintDinero;
-    const bigintUSD = castToBigintCurrency(USD);
+			expect(snapshot).toEqual({
+				amount: 802401,
+				scale: 5,
+				currency: USD,
+			});
+		});
+	});
+	describe("bigint", () => {
+		const dinero = createBigintDinero;
+		const bigintUSD = castToBigintCurrency(USD);
 
-    it('multiplies positive Dinero objects', () => {
-      const d = dinero({ amount: 400n, currency: bigintUSD });
+		it("multiplies positive Dinero objects", () => {
+			const d = dinero({ amount: 400n, currency: bigintUSD });
 
-      expect(toSnapshot(multiply(d, 4n))).toEqual({
-        amount: 1600n,
-        scale: 2n,
-        currency: bigintUSD,
-      });
-      expect(toSnapshot(multiply(d, -1n))).toEqual({
-        amount: -400n,
-        scale: 2n,
-        currency: bigintUSD,
-      });
-    });
-    it('multiplies negative Dinero objects', () => {
-      const d = dinero({ amount: -400n, currency: bigintUSD });
+			expect(toSnapshot(multiply(d, 4n))).toEqual({
+				amount: 1600n,
+				scale: 2n,
+				currency: bigintUSD,
+			});
+			expect(toSnapshot(multiply(d, -1n))).toEqual({
+				amount: -400n,
+				scale: 2n,
+				currency: bigintUSD,
+			});
+		});
+		it("multiplies negative Dinero objects", () => {
+			const d = dinero({ amount: -400n, currency: bigintUSD });
 
-      expect(toSnapshot(multiply(d, 4n))).toEqual({
-        amount: -1600n,
-        scale: 2n,
-        currency: bigintUSD,
-      });
-      expect(toSnapshot(multiply(d, 1n))).toEqual({
-        amount: -400n,
-        scale: 2n,
-        currency: bigintUSD,
-      });
-    });
-    it('converts the multiplied amount to the safest scale', () => {
-      const d = dinero({ amount: 401n, currency: bigintUSD });
+			expect(toSnapshot(multiply(d, 4n))).toEqual({
+				amount: -1600n,
+				scale: 2n,
+				currency: bigintUSD,
+			});
+			expect(toSnapshot(multiply(d, 1n))).toEqual({
+				amount: -400n,
+				scale: 2n,
+				currency: bigintUSD,
+			});
+		});
+		it("converts the multiplied amount to the safest scale", () => {
+			const d = dinero({ amount: 401n, currency: bigintUSD });
 
-      const snapshot = toSnapshot(multiply(d, { amount: 2001n, scale: 3n }));
+			const snapshot = toSnapshot(multiply(d, { amount: 2001n, scale: 3n }));
 
-      expect(snapshot).toEqual({
-        amount: 802401n,
-        scale: 5n,
-        currency: bigintUSD,
-      });
-    });
-  });
-  describe('Big.js', () => {
-    const dinero = createBigjsDinero;
-    const bigjsUSD = castToBigjsCurrency(USD);
+			expect(snapshot).toEqual({
+				amount: 802401n,
+				scale: 5n,
+				currency: bigintUSD,
+			});
+		});
+	});
+	describe("Big.js", () => {
+		const dinero = createBigjsDinero;
+		const bigjsUSD = castToBigjsCurrency(USD);
 
-    it('multiplies positive Dinero objects', () => {
-      const d = dinero({ amount: new Big(400), currency: bigjsUSD });
+		it("multiplies positive Dinero objects", () => {
+			const d = dinero({ amount: new Big(400), currency: bigjsUSD });
 
-      expect(toSnapshot(multiply(d, new Big(4)))).toEqual({
-        amount: new Big(1600),
-        scale: new Big(2),
-        currency: bigjsUSD,
-      });
-      expect(toSnapshot(multiply(d, new Big(-1)))).toEqual({
-        amount: new Big(-400),
-        scale: new Big(2),
-        currency: bigjsUSD,
-      });
-    });
-    it('multiplies negative Dinero objects', () => {
-      const d = dinero({ amount: new Big(-400), currency: bigjsUSD });
+			expect(toSnapshot(multiply(d, new Big(4)))).toEqual({
+				amount: new Big(1600),
+				scale: new Big(2),
+				currency: bigjsUSD,
+			});
+			expect(toSnapshot(multiply(d, new Big(-1)))).toEqual({
+				amount: new Big(-400),
+				scale: new Big(2),
+				currency: bigjsUSD,
+			});
+		});
+		it("multiplies negative Dinero objects", () => {
+			const d = dinero({ amount: new Big(-400), currency: bigjsUSD });
 
-      expect(toSnapshot(multiply(d, new Big(4)))).toEqual({
-        amount: new Big(-1600),
-        scale: new Big(2),
-        currency: bigjsUSD,
-      });
-      expect(toSnapshot(multiply(d, new Big(1)))).toEqual({
-        amount: new Big(-400),
-        scale: new Big(2),
-        currency: bigjsUSD,
-      });
-    });
-    it('converts the multiplied amount to the safest scale', () => {
-      const d = dinero({ amount: new Big(401), currency: bigjsUSD });
+			expect(toSnapshot(multiply(d, new Big(4)))).toEqual({
+				amount: new Big(-1600),
+				scale: new Big(2),
+				currency: bigjsUSD,
+			});
+			expect(toSnapshot(multiply(d, new Big(1)))).toEqual({
+				amount: new Big(-400),
+				scale: new Big(2),
+				currency: bigjsUSD,
+			});
+		});
+		it("converts the multiplied amount to the safest scale", () => {
+			const d = dinero({ amount: new Big(401), currency: bigjsUSD });
 
-      const snapshot = toSnapshot(
-        multiply(d, { amount: new Big(2001), scale: new Big(3) })
-      );
+			const snapshot = toSnapshot(
+				multiply(d, { amount: new Big(2001), scale: new Big(3) }),
+			);
 
-      expect(snapshot).toEqual({
-        amount: new Big(802401),
-        scale: new Big(5),
-        currency: bigjsUSD,
-      });
-    });
-  });
+			expect(snapshot).toEqual({
+				amount: new Big(802401),
+				scale: new Big(5),
+				currency: bigjsUSD,
+			});
+		});
+	});
 });

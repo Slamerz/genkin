@@ -9,6 +9,7 @@ export {
   allocate,
   transformScale,
   normalizeScale,
+  convert,
 } from './arithmetic.js';
 
 // Allocation types

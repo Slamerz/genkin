@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { genkin } from '../../src/core/index.js';
+import { genkin } from '@genkin/core';
 import {
   equals,
   lessThan,
@@ -11,7 +11,7 @@ import {
   isNegative,
   min,
   max,
-} from '../../src/operations/comparison.js';
+} from '@genkin/core';
 
 describe('Comparison Operations', () => {
   describe('Equality', () => {

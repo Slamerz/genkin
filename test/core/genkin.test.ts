@@ -1,8 +1,8 @@
 
 import { describe, expect, it } from 'vitest';
-import { genkin, Genkin, RoundingMode } from '../../src/core/index.js';
-import { USD } from '../../src/currencies/index.js';
-import { createCurrency, getCurrencyConfig } from '../../src/core/currency.js';
+import { genkin, Genkin, RoundingMode } from '@genkin/core';
+import { USD } from '@genkin/currencies';
+import { createCurrency, getCurrencyConfig } from '@genkin/core';
 import {dinero, toDecimal} from 'dinero.js'
 import {USD as USD_DINERO} from '@dinero.js/currencies'
 

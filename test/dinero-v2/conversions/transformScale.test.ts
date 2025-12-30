@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import Big from 'big.js';
-import { toSnapshot, transformScale, up, down, halfUp, halfDown, halfEven, halfOdd, halfAwayFromZero, halfTowardsZero } from '../../../src/dinero-v2/index.js';
-import { USD, MGA} from "../../../src/dinero-v2/currencies";
+import { toSnapshot, transformScale, up, down, halfUp, halfDown, halfEven, halfOdd, halfAwayFromZero, halfTowardsZero, USD, MGA } from '@genkin/dinero-v2';
 import { createBigintDinero } from "../utils/createBigintDinero.js";
 import { castToBigintCurrency } from "../utils/castToBigintCurrency.js";
 import { createBigjsDinero } from "../utils/createBigjsDinero.js";

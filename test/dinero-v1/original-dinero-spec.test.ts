@@ -1,4 +1,4 @@
-import Dinero from '../../src/dinero-v1/index.js';
+import Dinero from '@genkin/dinero';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 describe('Dinero v1 Original Dinero Spec tests', () => {
