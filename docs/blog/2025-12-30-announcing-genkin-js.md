@@ -140,8 +140,7 @@ console.log(malagasyAriary.format()); // "50,000"
 
 Genkin.js is organized into several focused packages that you can install based on your needs:
 
-- **[`genkin`](https://www.npmjs.com/package/genkin)** - Core library with basic currency support (USD, EUR, GBP, JPY)
-- **[@genkin/core](https://www.npmjs.com/package/@genkin/core)** - The core package (installed as `genkin`)
+- **[@genkin/core](https://www.npmjs.com/package/@genkin/core)** - Core library with basic currency support (USD, EUR, GBP, JPY)
 - **[@genkin/currencies](https://www.npmjs.com/package/@genkin/currencies)** - All 166 ISO 4217 currencies
 - **[@genkin/dinero](https://www.npmjs.com/package/@genkin/dinero)** - Dinero.js v1 compatibility layer
 - **[@genkin/dinero-v2](https://www.npmjs.com/package/@genkin/dinero-v2)** - Dinero.js v2 compatibility layer
