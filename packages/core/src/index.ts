@@ -16,6 +16,7 @@ export type {
 	Currency,
 	CurrencyCode,
 	CurrencyConfig,
+	CurrencyFormatOptions,
 } from "./core/currency.js";
 export {
 	createCurrency,
