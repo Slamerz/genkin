@@ -1,6 +1,6 @@
 {
 	"name": "@genkin/dinero-v2",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Dinero.js v2 compatible API built on Genkin core with generic numeric types",
 	"type": "module",
 	"main": "dist/index.cjs",
@@ -46,7 +46,7 @@
 	"homepage": "https://slamerz.github.io/genkin/",
 	"sideEffects": false,
 	"peerDependencies": {
-		"@genkin/core": "^0.1.1"
+		"@genkin/core": "^0.1.3"
 	},
 	"publishConfig": {
 		"access": "public"
