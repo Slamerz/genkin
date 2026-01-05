@@ -1,12 +1,12 @@
 # Genkin
 
-[![npm](https://img.shields.io/npm/dy/@genkin/core?label=@Genkin/Core:%200.1.1)](https://www.npmjs.com/package/@genkin/core)
+[![npm](https://img.shields.io/npm/dy/@genkin/core?label=@Genkin/Core:%200.1.3)](https://www.npmjs.com/package/@genkin/core)
 
-[![npm](https://img.shields.io/npm/dy/@genkin/currencies?label=@Genkin/Currencies:%200.1.0)](https://www.npmjs.com/package/@genkin/currencies)
+[![npm](https://img.shields.io/npm/dy/@genkin/currencies?label=@Genkin/Currencies:%200.1.1)](https://www.npmjs.com/package/@genkin/currencies)
 
-[![npm](https://img.shields.io/npm/dy/@genkin/dinero?label=@Genkin/Dinero:%200.1.0)](https://www.npmjs.com/package/@genkin/dinero)
+[![npm](https://img.shields.io/npm/dy/@genkin/dinero?label=@Genkin/Dinero:%200.1.1)](https://www.npmjs.com/package/@genkin/dinero)
 
-[![npm](https://img.shields.io/npm/dy/@genkin/dinero-v2?label=@Genkin/Dinero-v2:%200.1.0)](https://www.npmjs.com/package/@genkin/dinero-v2)
+[![npm](https://img.shields.io/npm/dy/@genkin/dinero-v2?label=@Genkin/Dinero-v2:%200.1.1)](https://www.npmjs.com/package/@genkin/dinero-v2)
 
 High-precision currency and money calculations in TypeScript
 
