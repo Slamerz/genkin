@@ -1,76 +1,99 @@
 // Main entry point - exports core functionality for convenience
 // Users can import from here or from specific modules
 
+// Calculator abstraction - for implementing custom numeric types
+export type {
+	BinaryOperation,
+	Calculator,
+	UnaryOperation,
+} from "./core/calculator.js";
+export {
+	bigintCalculator,
+	ComparisonOperator,
+	numberCalculator,
+} from "./core/calculator.js";
+export type {
+	Currency,
+	CurrencyCode,
+	CurrencyConfig,
+} from "./core/currency.js";
+export {
+	createCurrency,
+	getCurrencyConfig,
+	RoundingMode,
+} from "./core/currency.js";
+export {
+	DEFAULT_CURRENCIES,
+	EUR,
+	GBP,
+	JPY,
+	USD,
+} from "./core/default-currencies.js";
+// Generic Genkin factory - for custom numeric types
+export { createGenkin, GenericGenkin } from "./core/factory.js";
+export type { GenkinOptions } from "./core/genkin.js";
 // Re-export core functionality (most common use case)
-export { Genkin, genkin } from './core/genkin.js';
-export type { GenkinOptions } from './core/genkin.js';
-export type { CurrencyCode, CurrencyConfig, Currency } from './core/currency.js';
-export { RoundingMode, createCurrency, getCurrencyConfig } from './core/currency.js';
-
-// Re-export currency registry
-export { CurrencyRegistry, currencyRegistry, createCurrencyRegistry } from './core/registry.js';
-
+export { Genkin, genkin } from "./core/genkin.js";
 // Re-export precision utilities
 export {
-  toMinorUnits,
-  fromMinorUnits,
-  applyRounding,
-  safeAdd,
-  safeSubtract,
-  safeMultiply,
-  safeDivide,
-} from './core/precision.js';
-
-// Generic Genkin factory - for custom numeric types
-export { createGenkin, GenericGenkin } from './core/factory.js';
+	applyRounding,
+	fromMinorUnits,
+	safeAdd,
+	safeDivide,
+	safeMultiply,
+	safeSubtract,
+	toMinorUnits,
+} from "./core/precision.js";
+// Re-export currency registry
+export {
+	CurrencyRegistry,
+	createCurrencyRegistry,
+	currencyRegistry,
+} from "./core/registry.js";
 export type {
-  GenkinInstance,
-  GenkinFactory,
-  CreateGenkinOptions,
-  GenericScaledRatio,
-  GenericAllocationRatio,
-} from './core/types.js';
+	CreateGenkinOptions,
+	GenericAllocationRatio,
+	GenericScaledRatio,
+	GenkinFactory,
+	GenkinInstance,
+} from "./core/types.js";
 
-// Calculator abstraction - for implementing custom numeric types
-export type { Calculator, BinaryOperation, UnaryOperation } from './core/calculator.js';
-export { ComparisonOperator, numberCalculator, bigintCalculator } from './core/calculator.js';
 // bigjsCalculator removed - users should create their own to avoid constructor mismatch issues
 
-// Re-export common operations for convenience (number-based)
-export {
-  add,
-  subtract,
-  multiply,
-  divide,
-  abs,
-  negate,
-  allocate,
-  transformScale,
-  normalizeScale,
-  convert,
-  equals,
-  lessThan,
-  lessThanOrEqual,
-  greaterThan,
-  greaterThanOrEqual,
-  isZero,
-  isPositive,
-  isNegative,
-  hasSubUnits,
-  min,
-  max,
-} from './operations/index.js';
+// Module namespaces for those who prefer organized imports
+export * as Core from "./core/index.js";
 
 // Generic operations factory - for custom numeric types
 export {
-  createArithmeticOperations,
-  createComparisonOperations,
-  createOperations,
-} from './operations/generic.js';
+	createArithmeticOperations,
+	createComparisonOperations,
+	createOperations,
+} from "./operations/generic.js";
 
 // Re-export allocation types for convenience
-export type { ScaledRatio, AllocationRatio } from './operations/index.js';
-
-// Module namespaces for those who prefer organized imports
-export * as Core from './core/index.js';
-export * as Operations from './operations/index.js';
+export type { AllocationRatio, ScaledRatio } from "./operations/index.js";
+export * as Operations from "./operations/index.js";
+// Re-export common operations for convenience (number-based)
+export {
+	abs,
+	add,
+	allocate,
+	convert,
+	divide,
+	equals,
+	greaterThan,
+	greaterThanOrEqual,
+	hasSubUnits,
+	isNegative,
+	isPositive,
+	isZero,
+	lessThan,
+	lessThanOrEqual,
+	max,
+	min,
+	multiply,
+	negate,
+	normalizeScale,
+	subtract,
+	transformScale,
+} from "./operations/index.js";

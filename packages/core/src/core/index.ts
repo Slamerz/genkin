@@ -15,10 +15,17 @@ export {
 export type { Currency, CurrencyCode, CurrencyConfig } from "./currency.js";
 export {
 	createCurrency,
-	DEFAULT_CURRENCIES,
 	getCurrencyConfig,
 	RoundingMode,
 } from "./currency.js";
+// Default currencies and configurations
+export {
+	DEFAULT_CURRENCIES,
+	EUR,
+	GBP,
+	JPY,
+	USD,
+} from "./default-currencies.js";
 // Generic Genkin factory and types
 export { createGenkin, GenericGenkin } from "./factory.js";
 export type { GenkinOptions } from "./genkin.js";
