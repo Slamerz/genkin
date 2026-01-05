@@ -563,4 +563,4 @@ export type { Currency, CurrencyConfig, CurrencyCode, CurrencyFormatOptions } fr
 export { createCurrency, getCurrencyConfig, RoundingMode } from '@genkin/core';
 
 // Re-export registry for convenience
-export { CurrencyRegistry, currencyRegistry, createCurrencyRegistry } from '@genkin/core'; 
+export { CurrencyRegistry, currencyRegistry, createCurrencyRegistry } from '@genkin/core';

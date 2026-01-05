@@ -4,7 +4,7 @@
 // Re-export core functionality (most common use case)
 export { Genkin, genkin } from './core/genkin.js';
 export type { GenkinOptions } from './core/genkin.js';
-export type { CurrencyCode, CurrencyConfig, Currency } from './core/currency.js';
+export type { CurrencyCode, CurrencyConfig, Currency, CurrencyFormatOptions } from './core/currency.js';
 export { RoundingMode, createCurrency, getCurrencyConfig } from './core/currency.js';
 
 // Re-export currency registry
